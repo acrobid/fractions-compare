@@ -19,8 +19,8 @@
   :root {
     --fraction-bg: #2a2a2a;
     --result-bg: #333333;
-    --equal-bg: #eeb883ff;
-    --equal-text: #42b883;
+    --equal-bg: rgb(147, 70, 183);
+    --equal-text: #0f28ca;
   }
 }
 
