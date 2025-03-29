@@ -2,6 +2,10 @@
 import { ref, computed } from "vue";
 import FractionInput from "./components/FractionInput.vue";
 import FractionCircle from "./components/FractionCircle.vue";
+import TabNavigation from "./components/TabNavigation.vue";
+import DecimalFractionTab from "./components/DecimalFractionTab.vue";
+
+const activeTab = ref("compare");
 
 const fraction1 = ref({
   numerator: 1,
@@ -24,54 +28,62 @@ const areEqual = computed(() => {
   <div class="container">
     <h1>Fraction Visualizer</h1>
 
-    <div class="fractions">
-      <div class="fraction">
-        <FractionInput
-          label="First Fraction"
-          v-model:numerator="fraction1.numerator"
-          v-model:denominator="fraction1.denominator"
-        />
-        <FractionCircle
-          :numerator="fraction1.numerator"
-          :denominator="fraction1.denominator"
-        />
+    <TabNavigation v-model="activeTab" />
+
+    <div v-if="activeTab === 'compare'" class="tab-content">
+      <div class="fractions">
+        <div class="fraction">
+          <FractionInput
+            label="First Fraction"
+            v-model:numerator="fraction1.numerator"
+            v-model:denominator="fraction1.denominator"
+          />
+          <FractionCircle
+            :numerator="fraction1.numerator"
+            :denominator="fraction1.denominator"
+          />
+        </div>
+
+        <div class="fraction">
+          <FractionInput
+            label="Second Fraction"
+            v-model:numerator="fraction2.numerator"
+            v-model:denominator="fraction2.denominator"
+          />
+          <FractionCircle
+            :numerator="fraction2.numerator"
+            :denominator="fraction2.denominator"
+          />
+        </div>
       </div>
 
-      <div class="fraction">
-        <FractionInput
-          label="Second Fraction"
-          v-model:numerator="fraction2.numerator"
-          v-model:denominator="fraction2.denominator"
-        />
-        <FractionCircle
-          :numerator="fraction2.numerator"
-          :denominator="fraction2.denominator"
-        />
+      <div class="result" :class="{ equal: areEqual }">
+        <div class="result-text">
+          {{ areEqual ? "EQUAL FRACTIONS!" : "These fractions are different." }}
+        </div>
+
+        <div v-if="areEqual" class="celebration">
+          <div class="confetti-container">
+            <div
+              v-for="n in 20"
+              :key="n"
+              class="confetti"
+              :style="{
+                '--delay': `${Math.random() * 3}s`,
+                '--rotation': `${Math.random() * 360}deg`,
+                '--position': `${Math.random() * 100}%`,
+                '--size': `${Math.random() * 10 + 5}px`,
+                '--color': `hsl(${Math.random() * 360}, 90%, 60%)`,
+              }"
+            ></div>
+          </div>
+          <div class="shine"></div>
+        </div>
       </div>
     </div>
 
-    <div class="result" :class="{ equal: areEqual }">
-      <div class="result-text">
-        {{ areEqual ? "EQUAL FRACTIONS!" : "These fractions are different." }}
-      </div>
-
-      <div v-if="areEqual" class="celebration">
-        <div class="confetti-container">
-          <div
-            v-for="n in 20"
-            :key="n"
-            class="confetti"
-            :style="{
-              '--delay': `${Math.random() * 3}s`,
-              '--rotation': `${Math.random() * 360}deg`,
-              '--position': `${Math.random() * 100}%`,
-              '--size': `${Math.random() * 10 + 5}px`,
-              '--color': `hsl(${Math.random() * 360}, 90%, 60%)`,
-            }"
-          ></div>
-        </div>
-        <div class="shine"></div>
-      </div>
+    <div v-if="activeTab === 'decimal'" class="tab-content">
+      <DecimalFractionTab />
     </div>
   </div>
 </template>
@@ -88,6 +100,10 @@ h1 {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
   color: #42b883;
+}
+
+.tab-content {
+  margin-top: 1rem;
 }
 
 .fractions {
