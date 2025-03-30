@@ -4,7 +4,7 @@ import FractionCircle from "./FractionCircle.vue";
 
 const denominator = ref(10);
 const decimalValue = ref(0.1);
-const simplifyFraction = ref(true); // New toggle for GCD simplification
+const simplifyFraction = ref(false); // New toggle for GCD simplification
 
 const setDenominator = (value: number) => {
   denominator.value = value;
