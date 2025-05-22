@@ -1,0 +1,54 @@
+/* Additional CSS fixes for Long Division Grid Display */
+
+/* Stable layout container to prevent shifts between steps */
+.stable-layout-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: contents; /* Allow children to participate in the grid layout */
+  z-index: 1;
+}
+
+/* Force hardware acceleration to prevent layout shifts */
+.grid-container,
+.calculation-lines-container,
+.calculation-line-container,
+.grid-cell.calc-digit,
+.minus-sign,
+.bring-down-guide {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Create a stable layout that prevents shifting */
+.calculation-line-container[data-line-type="product"],
+.calculation-line-container[data-line-type="subtractionResult"],
+.calculation-line-container[data-line-type="broughtDownNumber"] {
+  height: 40px;
+  margin-bottom: 5px;
+  position: relative;
+}
+
+/* Improve bring-down animations */
+.bring-down-guide {
+  will-change: transform;
+  transform-origin: top;
+}
+
+/* Fix for layering of elements */
+.grid-cell.calc-digit {
+  box-sizing: border-box;
+}
+
+/* Prevent calculation digits from visually overlapping */
+.product-line-char,
+.subtraction-result-char {
+  transition: all 0.3s ease;
+}
+
+/* Ensure vinculum always stays in place */
+.vinculum-horizontal-bar,
+.vinculum-vertical-bar {
+  will-change: transform;
+}

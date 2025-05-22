@@ -28,6 +28,14 @@ const selectTab = (tab: string) => {
     >
       Decimal to Fraction
     </button>
+
+    <button
+      @click="selectTab('gridLongDivision')"
+      class="tab-button"
+      :class="{ active: modelValue === 'gridLongDivision' }"
+    >
+      Grid Division (New)
+    </button>
   </div>
 </template>
 

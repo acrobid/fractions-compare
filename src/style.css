@@ -12,6 +12,32 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
+  /* Grid Display Variables */
+  --grid-border-color: #e0e0e0;
+  --text-color: #000;
+  --highlight-bg: #fff3cd;
+  --highlight-border: #ffeeba;
+  --highlight-bg-light: #fff9e6;
+  --success-bg: #d4edda;
+  --success-border: #c3e6cb;
+  --cell-bg: white;
+  --product-color: #2196F3;
+  --subtraction-color: #FF5722;
+
+  /* Subtraction colors */
+  --highlight-minuend-bg: #e3f2fd;
+  --highlight-minuend-border: #90caf9;
+  --highlight-subtrahend-bg: #ffebee;
+  --highlight-subtrahend-border: #ef9a9a;
+  --highlight-subtrahend-bg-light: #fff3f3;
+
+  --text-secondary: #666;
+  --input-border: #ccc;
+  --input-bg: white;
+  --input-focus: #2196F3;
+  --input-focus-shadow: rgba(33, 150, 243, 0.1);
+  --input-disabled: #e9ecef;
+  --error-color: #dc3545;
   
 }
 
@@ -21,6 +47,28 @@
     --result-bg: #333333;
     --equal-bg: rgb(147, 70, 183);
     --equal-text: #0f28ca;
+    --grid-border-color: #404040;
+    --text-color: #fff;
+    --highlight-bg: #332701;
+    --highlight-border: #856404;
+    --highlight-bg-dark-light: #443601;
+    --success-bg: #0a2b0d;
+    --success-border: #155724;
+    --cell-bg: #1a1a1a;
+    --product-color-dark: #64B5F6;
+    --subtraction-color-dark: #FF8A65;
+
+    /* Dark mode subtraction colors */
+    --highlight-minuend-bg-dark: #0d47a1;
+    --highlight-minuend-border-dark: #1976d2;
+    --highlight-subtrahend-bg-dark: #b71c1c;
+    --highlight-subtrahend-border-dark: #d32f2f;
+    --highlight-subtrahend-bg-dark-light: #c62828;
+
+    --text-secondary: #aaa;
+    --input-border-dark: #404040;
+    --input-bg-dark: #1a1a1a;
+    --input-disabled-dark: #333;
   }
 }
 
