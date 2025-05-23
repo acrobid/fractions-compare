@@ -4,6 +4,7 @@ import FractionInput from "./components/FractionInput.vue";
 import FractionCircle from "./components/FractionCircle.vue";
 import TabNavigation from "./components/TabNavigation.vue";
 import DecimalFractionTab from "./components/DecimalFractionTab.vue";
+import LongDivisionPage from "./components/LongDivisionPage.vue";
 
 const activeTab = ref("compare");
 
@@ -26,7 +27,7 @@ const areEqual = computed(() => {
 
 <template>
   <div class="container">
-    <h1>Fraction Visualizer</h1>
+    <h1>Math Explorer</h1>
 
     <TabNavigation v-model="activeTab" />
 
@@ -84,6 +85,10 @@ const areEqual = computed(() => {
 
     <div v-if="activeTab === 'decimal'" class="tab-content">
       <DecimalFractionTab />
+    </div>
+
+    <div v-if="activeTab === 'division'" class="tab-content">
+      <LongDivisionPage />
     </div>
   </div>
 </template>

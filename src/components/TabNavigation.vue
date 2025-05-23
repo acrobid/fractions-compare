@@ -28,6 +28,13 @@ const selectTab = (tab: string) => {
     >
       Decimal to Fraction
     </button>
+    <button
+      @click="selectTab('division')"
+      class="tab-button"
+      :class="{ active: modelValue === 'division' }"
+    >
+      Long Division
+    </button>
   </div>
 </template>
 

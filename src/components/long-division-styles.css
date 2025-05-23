@@ -1,0 +1,94 @@
+/* Dark theme for long division grid with green lines */
+.math-grid {
+  display: grid;
+  gap: 1px; /* Increased gap for more prominent grid lines */
+  background-color: #34d39933; /* Green grid lines */
+  border: 1px solid #28a745; /* Darker green border for the grid container */
+  font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', 'Courier New', monospace;
+  font-size: 28px; /* Increased font size for larger numbers */
+  padding: 20px; /* Increased padding */
+  margin-top: 2rem; /* Increased margin-top */
+  border-radius: 15px; /* Slightly more rounded corners */
+  box-shadow: 0 6px 20px 0 #00000066; /* Enhanced shadow for a cooler look */
+  /* overflow: auto; */ /* Add if content might exceed bounds, for scrollability */
+}
+
+.graph-paper {
+  background: #1e2227; /* Slightly darker cell background for contrast */
+  border: none; /* Lines are formed by the math-grid background revealed by the gap */
+  width: 48px;  /* Increased cell width */
+  height: 48px; /* Increased cell height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 0.2s, transform 0.1s ease-out;
+  color: #c9d1d9; /* Default text color for cells, can be overridden by specific types */
+}
+
+/* Optional hover effect, uncomment if desired */
+/*
+.graph-paper:hover {
+  transform: scale(1.05);
+  background: #2a2f35;
+}
+*/
+
+.bracket-horizontal {
+  border-top: 4px solid #adbac7 !important; /* Thicker bracket */
+}
+
+.bracket-vertical {
+  border-left: 4px solid #adbac7 !important; /* Thicker bracket */
+}
+
+.subtraction-line {
+  border-bottom: 3px solid #adbac7 !important; /* Thicker subtraction line */
+}
+
+.cell-type-digit {
+  font-weight: bold;
+  color: #e6edf3; /* Brighter text for digits */
+  letter-spacing: 1px; /* Adjusted letter spacing */
+}
+
+.cell-type-operator, 
+.cell-type-operator-subtract {
+  font-size: 28px; /* Match main font size */
+  color: #8b949e; /* Slightly dimmer for operators, but still legible */
+  font-weight: normal;
+}
+
+/* Highlighting Styles for Dark Theme */
+.cell-hl-result {
+  color: #ffadad; /* Lighter red text */
+  background: #5c2e2e;
+  border-radius: 8px; /* Slightly larger radius */
+}
+
+.cell-hl-brought-down {
+  color: #b2f2bb; /* Lighter green text */
+  background: #2e5c2e;
+  border-radius: 8px;
+}
+
+.cell-hl-multiply {
+  color: #b3d4fc; /* Lighter blue text */
+  background: #2e3e5c;
+  border-radius: 8px;
+}
+
+.cell-hl-active {
+  background: #323840; /* Slightly lighter dark background for active cell */
+  border: 3px solid #f78166 !important; /* Prominent orange border, thicker */
+  color: #e6edf3; /* Ensure text is light */
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px #f7816666; /* Softer, wider orange glow */
+  transform: scale(1.02); /* Slight scale effect when active */
+}
+
+.cell-hl-subtract {
+  color: #fff7b3; /* Lighter yellow text */
+  background: #5c5a2e;
+  border-radius: 8px;
+}
