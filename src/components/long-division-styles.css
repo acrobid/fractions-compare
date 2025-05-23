@@ -43,7 +43,8 @@
 }
 
 .subtraction-line {
-  border-bottom: 3px solid #adbac7 !important; /* Thicker subtraction line */
+  border-bottom: 4px solid #adbac7 !important; /* Thicker subtraction line */
+  z-index: 1; /* Ensure it appears above other elements */
 }
 
 .cell-type-digit {
@@ -61,9 +62,7 @@
 
 /* Highlighting Styles for Dark Theme */
 .cell-hl-result {
-  color: #ffadad; /* Lighter red text */
   background: #5c2e2e;
-  border-radius: 8px; /* Slightly larger radius */
 }
 
 .cell-hl-brought-down {
@@ -79,11 +78,8 @@
 }
 
 .cell-hl-active {
-  background: #323840; /* Slightly lighter dark background for active cell */
-  border: 3px solid #f78166 !important; /* Prominent orange border, thicker */
+  background: #439c49; /* Slightly lighter dark background for active cell */
   color: #e6edf3; /* Ensure text is light */
-  border-radius: 8px;
-  box-shadow: 0 0 0 2px #f7816666; /* Softer, wider orange glow */
   transform: scale(1.02); /* Slight scale effect when active */
 }
 

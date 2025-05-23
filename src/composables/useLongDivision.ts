@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 export interface GridCell {
   id: string;
   content: string;
-  type: "digit" | "operator" | "line" | "space" | "operator-subtract"; // Added 'operator-subtract'
+  type: "digit" | "operator" | "line" | "space" | "operator-subtract";
   highlight?: "active" | "result" | "brought-down" | "multiply" | "subtract";
   gridRow: number;
   gridColumn: number;
@@ -12,6 +12,12 @@ export interface GridCell {
   borderBottom?: boolean;
   isGraphPaper?: boolean;
   revealAtSubStep?: number;
+  animateFromCellId?: string; // For target cell: ID of cell to animate from
+  hideIfTargetIsAnimatingAtSubStep?: {
+    // For source cell: info to hide it
+    targetCellId: string;
+    subStep: number;
+  };
 }
 
 export interface LongDivisionStep {
@@ -29,8 +35,8 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
   const currentStep = ref(0);
 
   function generate() {
-    const dvnd = String(dividend.value).trim(); // Ensure dividend.value is a string before trimming
-    const dvsr = parseInt(String(divisor.value)); // Ensure divisor.value is a string for parseInt
+    const dvnd = String(dividend.value).trim();
+    const dvsr = parseInt(String(divisor.value));
 
     if (!dvnd || !/^[0-9]+$/.test(dvnd) || isNaN(dvsr) || dvsr <= 0) {
       gridCells.value = [];
@@ -44,7 +50,6 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
     const digits = dvnd.split("").map((d) => parseInt(d));
     const n = digits.length;
     if (n === 0) {
-      // Should be caught by !dvnd but as a safeguard
       gridCells.value = [];
       steps.value = [];
       rows.value = 0;
@@ -56,39 +61,34 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
     const dividendStartCol = 3;
     const divisorCol = 1;
     const bracketCol = 2;
-    const totalCols = dividendStartCol + n + 1; // +1 for potential extra space or alignment needs
+    const totalCols = dividendStartCol + n + 1;
 
     const qDigits: number[] = [];
     const multVals: number[] = [];
     const rems: number[] = [];
-    const actualWorkingNumbers: number[] = []; // Store the number being divided at each step s
+    const actualWorkingNumbers: number[] = [];
 
     let currentRemainder = 0;
     for (let i = 0; i < n; i++) {
-      // i is index for dividend.value.length and also for qDigits
       const currentDividendPortion = currentRemainder * 10 + digits[i];
       actualWorkingNumbers.push(currentDividendPortion);
-
       const q = Math.floor(currentDividendPortion / dvsr);
       const mult = q * dvsr;
       const rem = currentDividendPortion - mult;
-
       qDigits.push(q);
       multVals.push(mult);
       rems.push(rem);
       currentRemainder = rem;
     }
 
-    const stepCount = n; // Each dividend digit creates a main step in this model
-
+    const stepCount = n;
     const totalRows = 2 + stepCount * 2 + 1;
     rows.value = totalRows;
     cols.value = totalCols;
     const cellMap: Record<string, GridCell> = {};
-    let subStepCounter = 0; // Tracks the index for the newStepList
+    let subStepCounter = 0;
 
-    // --- Populate cellMap (Quotient, Divisor, Dividend rows first) ---
-    // Divisor (always visible from step 0)
+    // Divisor
     cellMap[`2-${divisorCol}`] = {
       id: "divisor",
       content: divisor.value,
@@ -98,7 +98,7 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
       isGraphPaper: true,
       revealAtSubStep: 0,
     };
-    // Bracket (always visible)
+    // Bracket
     cellMap[`2-${bracketCol}`] = {
       id: "bracket",
       content: "",
@@ -110,7 +110,8 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
       isGraphPaper: true,
       revealAtSubStep: 0,
     };
-    // Dividend digits (revealed one by one during "bring down" steps, or initially for the first working number)
+
+    // Dividend digits pre-population
     for (let i = 0; i < n; i++) {
       const col = dividendStartCol + i;
       cellMap[`2-${col}`] = {
@@ -121,37 +122,34 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
         gridColumn: col,
         borderTop: true,
         isGraphPaper: true,
-        // revealAtSubStep will be set more precisely:
-        // d-0 is part of the first "Divide" step's working number.
-        // d-{i+1} is revealed by the "Bring Down" step of main step 'i'.
+        // revealAtSubStep for d-0 is 0. Others are revealed by default (no revealAtSubStep or revealAtSubStep: 0)
+        // hideIfTargetIsAnimatingAtSubStep will be set if it becomes a source for bring down
       };
     }
-
-    // --- Populate cellMap (Calculation step rows) ---
-    // let currentGridRow = 3; // This variable was unused, removing it.
-
-    // --- Generate Step-by-Step Instructions and Highlights (and set revealAtSubStep) ---
-    const newStepList: LongDivisionStep[] = [];
-    // Initial working number (d-0) is revealed at the first division step.
+    // Ensure d-0 (first dividend digit) is revealed at the start of the process if not part of a multi-digit initial number.
     if (cellMap[`2-${dividendStartCol}`]) {
       // This is d-0
       cellMap[`2-${dividendStartCol}`].revealAtSubStep = 0;
     }
-    // If the first working number involves more than one digit (e.g. 123/13, first working number is 12)
-    // This logic would need to be more complex. Assuming one digit at a time for now for simplicity of reveal.
-    // For 84/3, d-0 (8) is revealed at subStep 0. d-1 (4) is revealed when it's brought down.
+
+    const newStepList: LongDivisionStep[] = [];
 
     for (let s = 0; s < stepCount; s++) {
       const workingNumberForThisStep = actualWorkingNumbers[s];
       const workingNumberStr = String(workingNumberForThisStep);
-      const displayLength = Math.max(1, workingNumberStr.length);
+      const displayLength = Math.max(1, workingNumberStr.length); // For current number being divided/subtracted from.
 
       let currentWorkingNumberCells: string[] = [];
       if (s === 0) {
         currentWorkingNumberCells.push("d-0");
+        // Ensure d-0 is revealed at this step if not already set
         const d0CellKey = `2-${dividendStartCol}`;
-        if (cellMap[d0CellKey])
+        if (
+          cellMap[d0CellKey] &&
+          cellMap[d0CellKey].revealAtSubStep === undefined
+        ) {
           cellMap[d0CellKey].revealAtSubStep = subStepCounter;
+        }
       } else {
         const prevRemVal = rems[s - 1];
         const prevWorkingNumVal = actualWorkingNumbers[s - 1];
@@ -197,14 +195,11 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
 
       // 2. Multiply Step
       const multStrPadded = String(multVals[s]).padStart(displayLength, " ");
-      const productDigitCells: string[] = [];
+      const productDigitCells: string[] = []; // Ensure this is string[]
       const multRowForCellMap = 3 + s * 2;
       const subOpCellId = `subop-${s}`;
-
       const productLeftmostCol = dividendStartCol + s - (displayLength - 1);
       const subtractionSymbolCol = productLeftmostCol - 1;
-
-      // Corrected condition for placing the subtraction symbol:
       if (subtractionSymbolCol >= 1) {
         cellMap[`${multRowForCellMap}-${subtractionSymbolCol}`] = {
           id: subOpCellId,
@@ -213,41 +208,30 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
           gridRow: multRowForCellMap,
           gridColumn: subtractionSymbolCol,
           isGraphPaper: true,
-          revealAtSubStep: subStepCounter, // Revealed with the product
+          revealAtSubStep: subStepCounter,
         };
-      } else {
-        // If it can't be placed (e.g. product is too far left, subtractionSymbolCol is 0 or less)
-        // then subOpCellId might not be in cellMap, and highlighting logic handles this.
       }
-
       for (let k = 0; k < multStrPadded.length; k++) {
         const char = multStrPadded[k];
-        const mCol = dividendStartCol + s - (displayLength - 1) + k;
+        const mCol = productLeftmostCol + k;
         if (char !== " ") {
           const mCellId = `m-${s}-${k}`;
-          productDigitCells.push(mCellId);
+          productDigitCells.push(mCellId); // mCellId is a string
           cellMap[`${multRowForCellMap}-${mCol}`] = {
             id: mCellId,
             content: char,
             type: "digit",
             gridRow: multRowForCellMap,
             gridColumn: mCol,
-            borderBottom: true, // This creates the line under the number to be subtracted
+            borderBottom: true,
             isGraphPaper: true,
             revealAtSubStep: subStepCounter,
           };
         }
       }
-
-      const multiplyStepHighlightCells = [
-        "divisor",
-        qCellId,
-        ...productDigitCells,
-      ];
-
       newStepList.push({
         instruction: `Multiply ${dvsr} × ${qDigits[s]} = ${multVals[s]}.`,
-        highlightCells: multiplyStepHighlightCells.filter(
+        highlightCells: ["divisor", qCellId, ...productDigitCells].filter(
           (id) => id !== undefined,
         ),
       });
@@ -255,14 +239,14 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
 
       // 3. Subtract Step
       const remStrPadded = String(rems[s]).padStart(displayLength, " ");
-      const remainderDigitCells: string[] = [];
+      const remainderDigitCells: string[] = []; // Ensure this is string[]
       const remRowForCellMap = 3 + s * 2 + 1;
       for (let k = 0; k < remStrPadded.length; k++) {
         const char = remStrPadded[k];
-        const rCol = dividendStartCol + s - (displayLength - 1) + k;
+        const rCol = productLeftmostCol + k; // Remainder aligns with product digits
         if (char !== " ") {
           const rCellId = `r-${s}-${k}`;
-          remainderDigitCells.push(rCellId);
+          remainderDigitCells.push(rCellId); // rCellId is a string
           cellMap[`${remRowForCellMap}-${rCol}`] = {
             id: rCellId,
             content: char,
@@ -274,18 +258,13 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
           };
         }
       }
-
-      const subtractStepHighlightCells = [
-        ...currentWorkingNumberCells,
-        ...productDigitCells,
-        ...remainderDigitCells,
-      ];
-
       newStepList.push({
         instruction: `Subtract ${workingNumberForThisStep} - ${multVals[s]} = ${rems[s]}.`,
-        highlightCells: subtractStepHighlightCells.filter(
-          (id) => id !== undefined,
-        ),
+        highlightCells: [
+          ...currentWorkingNumberCells,
+          ...productDigitCells,
+          ...remainderDigitCells,
+        ].filter((id) => id !== undefined),
       });
       subStepCounter++;
 
@@ -293,14 +272,36 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
       if (s + 1 < n) {
         const broughtDownDigitOriginalCellId = `d-${s + 1}`;
         const broughtDownDigitDestCellId = `bd-${s}`;
+        // currentStepRemainderCells should be accurately populated from the subtract step
         const currentStepRemainderCells = remainderDigitCells;
 
-        // The original dividend digit d-(s+1) is revealed at this step
         const dOriginalCellKey = `2-${dividendStartCol + s + 1}`;
-        if (cellMap[dOriginalCellKey])
-          cellMap[dOriginalCellKey].revealAtSubStep = subStepCounter;
-        else {
-          // It should have been pre-populated, this is a fallback
+
+        // Calculate column for the brought-down digit (destination)
+        const remainderValueStr = String(rems[s]);
+        const remainderActualLength = remainderValueStr.length;
+
+        // Determine the column where the first digit of the current remainder (rems[s]) was placed.
+        // remStrPadded was String(rems[s]).padStart(displayLength, " ");
+        // The remainder digits were placed starting at rCol = productLeftmostCol + k;
+        // The first non-space char of remStrPadded is at index (displayLength - remainderActualLength).
+        const firstRemainderDigitOffset = displayLength - remainderActualLength;
+        const actualRemainderStartCol =
+          productLeftmostCol + firstRemainderDigitOffset;
+
+        // The brought-down digit goes to the right of the last digit of the remainder.
+        const finalBdCol = actualRemainderStartCol + remainderActualLength;
+
+        const bdRow = remRowForCellMap; // Same row as the remainder it joins
+        const bdCellKey = `${bdRow}-${finalBdCol}`;
+
+        // Configure the original dividend cell to hide during animation
+        if (cellMap[dOriginalCellKey]) {
+          cellMap[dOriginalCellKey].hideIfTargetIsAnimatingAtSubStep = {
+            targetCellId: broughtDownDigitDestCellId,
+            subStep: subStepCounter,
+          };
+        } else {
           cellMap[dOriginalCellKey] = {
             id: broughtDownDigitOriginalCellId,
             content: digits[s + 1].toString(),
@@ -309,22 +310,34 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
             gridColumn: dividendStartCol + s + 1,
             borderTop: true,
             isGraphPaper: true,
-            revealAtSubStep: subStepCounter,
+            hideIfTargetIsAnimatingAtSubStep: {
+              targetCellId: broughtDownDigitDestCellId,
+              subStep: subStepCounter,
+            },
           };
         }
 
-        // The cell where it's visually placed after bringing down (bd-s)
-        const bdCol = dividendStartCol + (s + 1);
-        const bdRow = remRowForCellMap; // Same row as the remainder it joins
-        cellMap[`${bdRow}-${bdCol}`] = {
-          // Define/update brought-down cell
+        // Define/update the brought-down cell (destination)
+        // Ensure this doesn't overwrite an existing remainder digit if remainder is multi-digit and bd somehow lands on it.
+        // The finalBdCol calculation should place it *after* the remainder.
+        if (
+          cellMap[bdCellKey] &&
+          cellMap[bdCellKey].type === "digit" &&
+          !cellMap[bdCellKey].id.startsWith("bd-")
+        ) {
+          // This case would be problematic, indicating an overlap.
+          // For now, we assume finalBdCol is correctly calculated to avoid this.
+        }
+
+        cellMap[bdCellKey] = {
           id: broughtDownDigitDestCellId,
           content: digits[s + 1].toString(),
           type: "digit",
           gridRow: bdRow,
-          gridColumn: bdCol,
+          gridColumn: finalBdCol,
           isGraphPaper: true,
-          revealAtSubStep: subStepCounter, // Brought-down digit revealed at this step
+          revealAtSubStep: subStepCounter,
+          animateFromCellId: broughtDownDigitOriginalCellId,
         };
 
         newStepList.push({
@@ -339,39 +352,38 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
         });
         subStepCounter++;
       } else {
-        // No more digits to bring down, this is the final remainder processing
-        // If there's a final remainder, it was revealed in the last Subtract step.
-        // If it's a non-zero remainder (and it's the last step):
-        if (rems[s] !== 0) {
-          newStepList.push({
-            instruction: `Division complete. Final remainder is ${rems[s]}.`,
-            highlightCells: [...remainderDigitCells].filter(
-              (id) => id !== undefined,
-            ),
-          });
-          subStepCounter++;
-        }
-        // If it's a zero remainder (and it's the last step):
-        else if (s === stepCount - 1 && rems[s] === 0) {
-          newStepList.push({
-            instruction: `Division complete. No remainder.`,
-            highlightCells: [...remainderDigitCells].filter(
-              (id) => id !== undefined,
-            ),
-          });
-          subStepCounter++;
+        // Final remainder/completion steps
+        if (s === stepCount - 1) {
+          // Only add completion step if it's the last main step
+          if (rems[s] !== 0) {
+            newStepList.push({
+              instruction: `Division complete. Final remainder is ${rems[s]}.`,
+              highlightCells: [...remainderDigitCells].filter(
+                (id) => id !== undefined,
+              ),
+            });
+            subStepCounter++;
+          } else {
+            newStepList.push({
+              instruction: `Division complete. No remainder.`,
+              highlightCells: [...remainderDigitCells].filter(
+                (id) => id !== undefined,
+              ),
+            });
+            subStepCounter++;
+          }
         }
       }
     }
     steps.value = newStepList;
 
-    // Build full grid for display from cellMap
     const finalCells: GridCell[] = [];
     for (let r = 1; r <= rows.value; r++) {
       for (let c = 1; c <= cols.value; c++) {
         const key = `${r}-${c}`;
-        if (cellMap[key]) finalCells.push(cellMap[key]);
-        else
+        if (cellMap[key]) {
+          finalCells.push(cellMap[key]);
+        } else {
           finalCells.push({
             id: `s-${r}-${c}`,
             content: "",
@@ -380,11 +392,11 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
             gridColumn: c,
             isGraphPaper: true,
           });
+        }
       }
     }
     gridCells.value = finalCells;
-
-    currentStep.value = 0; // Reset to first step
+    currentStep.value = 0;
   }
 
   function nextStep() {
@@ -394,13 +406,13 @@ export function useLongDivision(dividendInit = "84", divisorInit = "3") {
     if (currentStep.value > 0) currentStep.value--;
   }
 
-  // For grid: highlight only cells for current step
   const highlightedCells = computed(() => {
-    if (!steps.value.length) return new Set<string>();
+    if (!steps.value.length || !steps.value[currentStep.value])
+      return new Set<string>();
     return new Set(steps.value[currentStep.value].highlightCells);
   });
 
-  generate();
+  generate(); // Initial generation
 
   return {
     dividend,
