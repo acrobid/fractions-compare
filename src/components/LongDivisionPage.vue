@@ -44,8 +44,12 @@ const visibleInstructions = computed(() =>
   <div class="long-division-page-container">
     <h2>Long Division Explorer</h2>
     <div class="controls">
-      <label>Dividend: <input type="number" v-model.number="dividend" /></label>
-      <label>Divisor: <input type="number" v-model.number="divisor" /></label>
+      <!-- New structure for division input -->
+      <div class="division-input-wrapper">
+        <input type="number" v-model.number="divisor" placeholder="Divisor" class="divisor-styled-input" />
+        <span class="division-bracket-arm"></span>
+        <input type="number" v-model.number="dividend" placeholder="Dividend" class="dividend-styled-input" />
+      </div>
       <button @click="generate">Visualize</button>
     </div>
 
@@ -140,19 +144,24 @@ const visibleInstructions = computed(() =>
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem; /* Increased gap to accommodate new input style */
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background-color: #f0f2f5; /* Lighter, neutral background */
+  background-color: #f0f2f5;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+/* Remove old label styles as they are no longer used */
+/*
 .controls label {
   font-size: 1em;
   color: #333;
 }
+*/
 
+/* Remove or adapt old general input styles if they conflict */
+/*
 .controls input[type="number"] {
   padding: 0.5rem;
   border: 1px solid #ccc;
@@ -160,6 +169,49 @@ const visibleInstructions = computed(() =>
   font-size: 1em;
   width: 80px;
   text-align: right;
+}
+*/
+
+.division-input-wrapper {
+  display: flex;
+  align-items: center; /* Vertically align items */
+  background-color: #fff;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.divisor-styled-input,
+.dividend-styled-input {
+  border: none;
+  padding: 0.6rem 0.4rem; /* Adjusted padding */
+  font-size: 1.2em; /* Larger font size */
+  text-align: right;
+  background-color: transparent;
+  color: #333;
+  outline: none; /* Remove focus outline, rely on wrapper or other cues */
+}
+
+.divisor-styled-input {
+  width: 100px; /* Adjusted width */
+}
+
+.dividend-styled-input {
+  width: 140px; /* Adjusted width */
+  border-top: 2px solid #555; /* Vinculum (bar over dividend) */
+  margin-left: -2px; /* Pull closer to the arm if arm has width */
+  padding-top: 0.4rem; /* Adjust to align text nicely under the bar */
+  border-radius: 0 4px 4px 0; /* Optional: round outer corners */
+}
+
+.division-bracket-arm {
+  display: inline-block;
+  width: 2px;
+  background-color: #555;
+  height: 2.2em; /* Approximate height, adjust as needed */
+  margin: 0 0.2rem; /* Space around the arm */
+  align-self: center; /* Ensure it's centered with inputs */
 }
 
 .controls button {
@@ -182,14 +234,41 @@ const visibleInstructions = computed(() =>
     background-color: #2a2a2a;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
+  /* Remove old label styles for dark mode */
+  /*
   .controls label {
     color: rgba(255, 255, 255, 0.87);
   }
+  */
+
+  .division-input-wrapper {
+    background-color: #3a3a3a; /* Darker background for the input group */
+    border: 1px solid #555;
+  }
+
+  .divisor-styled-input,
+  .dividend-styled-input {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: transparent;
+  }
+
+  .dividend-styled-input {
+    border-top: 2px solid #bbb; /* Lighter bar for dark mode */
+  }
+
+  .division-bracket-arm {
+    background-color: #bbb; /* Lighter arm for dark mode */
+  }
+  
+  /* Remove or adapt old general input styles for dark mode */
+  /*
   .controls input[type="number"] {
     background-color: #333;
     color: rgba(255, 255, 255, 0.87);
     border: 1px solid #555;
   }
+  */
+
   .controls button {
     background-color: #42b883; /* Green button in dark mode */
   }
