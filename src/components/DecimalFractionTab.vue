@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { motion } from "motion-v";
 import FractionCircle from "./FractionCircle.vue";
 
 const denominator = ref(10);
@@ -51,7 +52,15 @@ const toggleSimplify = () => {
 </script>
 
 <template>
-  <div class="decimal-fraction-container">
+  <motion.div
+    class="decimal-fraction-container"
+    :initial="{ opacity: 0, y: 20 }"
+    :animate="{ opacity: 1, y: 0 }"
+    :transition="{
+      duration: 0.3,
+      ease: 'easeOut',
+    }"
+  >
     <div class="controls">
       <div class="denominator-controls">
         <h3>Denominator</h3>
@@ -128,11 +137,10 @@ const toggleSimplify = () => {
         <FractionCircle
           :numerator="fraction.numerator"
           :denominator="fraction.denominator"
-          :key="`${fraction.numerator}-${fraction.denominator}`"
         />
       </div>
     </div>
-  </div>
+  </motion.div>
 </template>
 
 <style scoped>

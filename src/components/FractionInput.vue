@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { motion } from "motion-v";
+
 defineProps<{
   label: string;
   numerator: number;
@@ -6,56 +8,184 @@ defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'update:numerator', value: number): void;
-  (e: 'update:denominator', value: number): void;
+  (e: "update:numerator", value: number): void;
+  (e: "update:denominator", value: number): void;
 }>();
 </script>
 
 <template>
-  <div class="fraction-input">
-    <h3>{{ label }}</h3>
-    <div class="inputs">
-      <div class="input-group">
-        <button 
-          class="btn" 
+  <motion.div
+    class="fraction-input"
+    :initial="{ opacity: 0, x: -20, scale: 0.95 }"
+    :animate="{ opacity: 1, x: 0, scale: 1 }"
+    :transition="{
+      duration: 0.2,
+      ease: 'easeOut',
+    }"
+  >
+    <motion.h3
+      :initial="{ opacity: 0, y: -8, scale: 0.9 }"
+      :animate="{ opacity: 1, y: 0, scale: 1 }"
+      :transition="{
+        duration: 0.15,
+        ease: 'easeOut',
+        delay: 0.05,
+      }"
+      :while-hover="{
+        scale: 1.02,
+      }"
+    >
+      {{ label }}
+    </motion.h3>
+    <motion.div
+      class="inputs"
+      :initial="{ opacity: 0, y: 10, scale: 0.98 }"
+      :animate="{ opacity: 1, y: 0, scale: 1 }"
+      :transition="{
+        duration: 0.15,
+        ease: 'easeOut',
+        delay: 0.08,
+      }"
+    >
+      <motion.div
+        class="input-group"
+        :initial="{ opacity: 0, scale: 0.9, rotate: -3 }"
+        :animate="{ opacity: 1, scale: 1, rotate: 0 }"
+        :transition="{
+          duration: 0.12,
+          ease: 'easeOut',
+          delay: 0.1,
+        }"
+      >
+        <motion.button
+          class="btn"
           @click="$emit('update:numerator', Math.max(0, numerator - 1))"
           aria-label="Decrease numerator"
-        >−</button>
-        <input
+          :while-hover="{ scale: 1.05 }"
+          :while-tap="{ scale: 0.95 }"
+          :transition="{ duration: 0.1 }"
+          >−</motion.button
+        >
+        <motion.input
           type="number"
           min="0"
           :value="numerator"
-          @input="$emit('update:numerator', +($event.target as HTMLInputElement).value)"
+          @input="
+            $emit(
+              'update:numerator',
+              +($event.target as HTMLInputElement).value,
+            )
+          "
           placeholder="Numerator"
+          :while-focus="{
+            scale: 1.05,
+            filter: 'brightness(1.1) hue-rotate(5deg)',
+          }"
+          :style="{
+            filter: 'brightness(1) hue-rotate(0deg)',
+          }"
         />
-        <button 
-          class="btn" 
+        <motion.button
+          class="btn"
           @click="$emit('update:numerator', numerator + 1)"
           aria-label="Increase numerator"
-        >+</button>
-      </div>
-      <div class="fraction-line"></div>
-      <div class="input-group">
-        <button 
-          class="btn" 
+          :while-hover="{
+            scale: 1.1,
+            rotate: 5,
+            filter: 'brightness(1.2) hue-rotate(10deg)',
+          }"
+          :while-tap="{ scale: 0.9, rotate: -5 }"
+          :transition="{ type: 'spring', stiffness: 400, damping: 15 }"
+          :style="{
+            filter: 'brightness(1) hue-rotate(0deg)',
+          }"
+          >+</motion.button
+        >
+      </motion.div>
+      <motion.div
+        class="fraction-line"
+        :initial="{ scaleX: 0, opacity: 0 }"
+        :animate="{ scaleX: 1, opacity: 1 }"
+        :transition="{
+          duration: 0.6,
+          ease: 'easeOut',
+          delay: 0.6,
+        }"
+        :while-hover="{
+          scaleY: 1.5,
+          filter: 'brightness(1.3) hue-rotate(15deg)',
+        }"
+        :style="{
+          transformOrigin: 'center',
+          filter: 'brightness(1) hue-rotate(0deg)',
+        }"
+      ></motion.div>
+      <motion.div
+        class="input-group"
+        :initial="{ opacity: 0, scale: 0.8, rotate: 5 }"
+        :animate="{ opacity: 1, scale: 1, rotate: 0 }"
+        :transition="{
+          duration: 0.5,
+          type: 'spring',
+          stiffness: 180,
+          damping: 20,
+          delay: 0.7,
+        }"
+      >
+        <motion.button
+          class="btn"
           @click="$emit('update:denominator', Math.max(1, denominator - 1))"
           aria-label="Decrease denominator"
-        >−</button>
-        <input
+          :while-hover="{
+            scale: 1.1,
+            rotate: -5,
+            filter: 'brightness(1.2) hue-rotate(10deg)',
+          }"
+          :while-tap="{ scale: 0.9, rotate: 5 }"
+          :transition="{ type: 'spring', stiffness: 400, damping: 15 }"
+          :style="{
+            filter: 'brightness(1) hue-rotate(0deg)',
+          }"
+          >−</motion.button
+        >
+        <motion.input
           type="number"
           min="1"
           :value="denominator"
-          @input="$emit('update:denominator', +($event.target as HTMLInputElement).value)"
+          @input="
+            $emit(
+              'update:denominator',
+              +($event.target as HTMLInputElement).value,
+            )
+          "
           placeholder="Denominator"
+          :while-focus="{
+            scale: 1.05,
+            filter: 'brightness(1.1) hue-rotate(5deg)',
+          }"
+          :style="{
+            filter: 'brightness(1) hue-rotate(0deg)',
+          }"
         />
-        <button 
-          class="btn" 
+        <motion.button
+          class="btn"
           @click="$emit('update:denominator', denominator + 1)"
           aria-label="Increase denominator"
-        >+</button>
-      </div>
-    </div>
-  </div>
+          :while-hover="{
+            scale: 1.1,
+            rotate: 5,
+            filter: 'brightness(1.2) hue-rotate(10deg)',
+          }"
+          :while-tap="{ scale: 0.9, rotate: -5 }"
+          :transition="{ type: 'spring', stiffness: 400, damping: 15 }"
+          :style="{
+            filter: 'brightness(1) hue-rotate(0deg)',
+          }"
+          >+</motion.button
+        >
+      </motion.div>
+    </motion.div>
+  </motion.div>
 </template>
 
 <style scoped>

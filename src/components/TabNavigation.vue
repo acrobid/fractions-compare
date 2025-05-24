@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from "vue";
+import { motion } from "motion-v";
 
 defineProps<{
   modelValue: string;
@@ -13,29 +14,73 @@ const selectTab = (tab: string) => {
 </script>
 
 <template>
-  <div class="tab-navigation">
-    <button
+  <motion.div
+    class="tab-navigation"
+    :initial="{ opacity: 0, y: -10, scale: 0.98 }"
+    :animate="{ opacity: 1, y: 0, scale: 1 }"
+    :transition="{
+      duration: 0.2,
+      ease: 'easeOut',
+    }"
+  >
+    <motion.button
       @click="selectTab('compare')"
       class="tab-button"
       :class="{ active: modelValue === 'compare' }"
+      :initial="{ opacity: 0, x: -15, scale: 0.95 }"
+      :animate="{ opacity: 1, x: 0, scale: 1 }"
+      :transition="{
+        duration: 0.15,
+        ease: 'easeOut',
+        delay: 0.05,
+      }"
+      :while-hover="{
+        scale: 1.02,
+        y: -1,
+      }"
+      :while-tap="{ scale: 0.98, y: 0 }"
     >
       Compare Fractions
-    </button>
-    <button
+    </motion.button>
+    <motion.button
       @click="selectTab('decimal')"
       class="tab-button"
       :class="{ active: modelValue === 'decimal' }"
+      :initial="{ opacity: 0, x: -8, scale: 0.95 }"
+      :animate="{ opacity: 1, x: 0, scale: 1 }"
+      :transition="{
+        duration: 0.15,
+        ease: 'easeOut',
+        delay: 0.08,
+      }"
+      :while-hover="{
+        scale: 1.02,
+        y: -1,
+      }"
+      :while-tap="{ scale: 0.98, y: 0 }"
     >
       Decimal to Fraction
-    </button>
-    <button
+    </motion.button>
+    <motion.button
       @click="selectTab('division')"
       class="tab-button"
       :class="{ active: modelValue === 'division' }"
+      :initial="{ opacity: 0, x: 8, scale: 0.95 }"
+      :animate="{ opacity: 1, x: 0, scale: 1 }"
+      :transition="{
+        duration: 0.15,
+        ease: 'easeOut',
+        delay: 0.1,
+      }"
+      :while-hover="{
+        scale: 1.02,
+        y: -1,
+      }"
+      :while-tap="{ scale: 0.98, y: 0 }"
     >
       Long Division
-    </button>
-  </div>
+    </motion.button>
+  </motion.div>
 </template>
 
 <style scoped>
