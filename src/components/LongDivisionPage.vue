@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch, nextTick } from "vue";
 import { useLongDivision } from "../composables/useLongDivision";
 import type { GridCell } from "../composables/useLongDivision";
 import LongDivisionGrid from "./LongDivisionGrid.vue";
 import LongDivisionInstructions from "./LongDivisionInstructions.vue";
+import DivisionInput from "./DivisionInput.vue"; // Import the new component
+import FinalAnswerCelebration from "./FinalAnswerCelebration.vue";
+import { motion, AnimatePresence } from "motion-v";
 
 const {
   dividend,
@@ -18,6 +21,84 @@ const {
   nextStep,
   prevStep,
 } = useLongDivision();
+
+// Animation state
+const isAnimating = ref(false);
+const showEntranceAnimations = ref(false);
+const flyingDigits = ref<
+  Array<{
+    id: string;
+    digit: string;
+    startX: number;
+    startY: number;
+    targetX: number;
+    targetY: number;
+  }>
+>([]);
+// Enhanced generate function with animation
+const handleVisualize = async () => {
+  if (isAnimating.value) return;
+
+  isAnimating.value = true;
+
+  // Create flying digit animations
+  const inputContainer = document.querySelector(".division-input-container");
+  const gridContainer = document.querySelector(".division-grid");
+
+  if (inputContainer && gridContainer) {
+    const inputRect = inputContainer.getBoundingClientRect();
+    const gridRect = gridContainer.getBoundingClientRect();
+
+    // Create flying digits for dividend and divisor
+    const newFlyingDigits = [];
+
+    // Add divisor digit(s)
+    const divisorStr = String(divisor.value);
+    for (let i = 0; i < divisorStr.length; i++) {
+      newFlyingDigits.push({
+        id: `flying-divisor-${i}`,
+        digit: divisorStr[i],
+        startX: inputRect.left + 60, // Approximate divisor input position
+        startY: inputRect.top + 20,
+        targetX: gridRect.left + 50 + Math.random() * 100, // Random spread in grid area
+        targetY: gridRect.top + 50 + Math.random() * 100,
+      });
+    }
+
+    // Add dividend digit(s)
+    const dividendStr = String(dividend.value);
+    for (let i = 0; i < dividendStr.length; i++) {
+      newFlyingDigits.push({
+        id: `flying-dividend-${i}`,
+        digit: dividendStr[i],
+        startX: inputRect.left + 240, // Approximate dividend input position
+        startY: inputRect.top + 20,
+        targetX: gridRect.left + 100 + Math.random() * 150, // Random spread in grid area
+        targetY: gridRect.top + 80 + Math.random() * 120,
+      });
+    }
+
+    flyingDigits.value = newFlyingDigits;
+
+    // Trigger entrance animations simultaneously with flying digits
+    showEntranceAnimations.value = true;
+    generate();
+
+    // Wait for both animations to complete, then clean up
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    flyingDigits.value = [];
+
+    // Reset entrance animation flag after the animations complete
+    setTimeout(() => {
+      showEntranceAnimations.value = false;
+    }, 500); // Short delay to let entrance animations finish
+  } else {
+    // Fallback if elements not found
+    generate();
+  }
+
+  isAnimating.value = false;
+};
 
 const displayCells = computed(() =>
   gridCells.value.map((cell) => {
@@ -38,47 +119,279 @@ const currentSubStepForGrid = currentStep;
 const visibleInstructions = computed(() =>
   steps.value.slice(0, currentStep.value + 1),
 );
+
+// Check if division is complete (on the last step)
+const isDivisionComplete = computed(() => {
+  return steps.value.length > 0 && currentStep.value === steps.value.length - 1;
+});
+
+// Calculate final answer values
+const finalQuotient = computed(() => {
+  if (!isDivisionComplete.value) return "";
+
+  // Extract quotient digits from grid cells (row 1)
+  const quotientCells = gridCells.value
+    .filter(
+      (cell) =>
+        cell.gridRow === 1 &&
+        cell.content &&
+        cell.content !== "" &&
+        cell.type === "digit",
+    )
+    .sort((a, b) => a.gridColumn - b.gridColumn);
+
+  return quotientCells.map((cell) => cell.content).join("");
+});
+
+const finalRemainder = computed(() => {
+  if (!isDivisionComplete.value) return "";
+
+  // Find the last remainder cells (highest row number with remainder data)
+  const lastRemainderRow = Math.max(
+    ...gridCells.value
+      .filter((cell) => cell.id.startsWith("r-") && cell.content !== "")
+      .map((cell) => cell.gridRow),
+  );
+
+  if (lastRemainderRow === -Infinity) return "0";
+
+  const remainderCells = gridCells.value
+    .filter(
+      (cell) =>
+        cell.gridRow === lastRemainderRow &&
+        cell.content &&
+        cell.content !== "" &&
+        cell.type === "digit",
+    )
+    .sort((a, b) => a.gridColumn - b.gridColumn);
+
+  const remainderValue = remainderCells.map((cell) => cell.content).join("");
+  return remainderValue === "0" || remainderValue === "00"
+    ? ""
+    : remainderValue;
+});
+
+// Auto-scroll to celebration when division is complete
+watch(isDivisionComplete, async (isComplete) => {
+  if (isComplete) {
+    // Wait for the celebration component to be rendered
+    await nextTick();
+
+    // Short delay to let the container appear, then scroll
+    setTimeout(() => {
+      const celebrationElement = document.querySelector(
+        ".final-answer-celebration",
+      );
+      if (celebrationElement) {
+        celebrationElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+      }
+    }, 400); // Reduced delay so scroll happens before answer animation
+  }
+});
 </script>
 
 <template>
   <div class="long-division-page-container">
-    <h2>Long Division Explorer</h2>
-    <div class="controls">
-      <!-- New structure for division input -->
-      <div class="division-input-wrapper">
-        <input type="number" v-model.number="divisor" placeholder="Divisor" class="divisor-styled-input" />
-        <span class="division-bracket-arm"></span>
-        <input type="number" v-model.number="dividend" placeholder="Dividend" class="dividend-styled-input" />
-      </div>
-      <button @click="generate">Visualize</button>
-    </div>
+    <motion.h2
+      :initial="{ opacity: 0, y: -30, scale: 0.8 }"
+      :animate="{ opacity: 1, y: 0, scale: 1 }"
+      :transition="{
+        duration: 0.8,
+        type: 'spring',
+        stiffness: 120,
+        damping: 15,
+        delay: 0.1,
+      }"
+      :while-hover="{
+        scale: 1.05,
+        rotate: 1,
+        filter: 'hue-rotate(15deg) brightness(1.1)',
+      }"
+    >
+      Long Division Explorer
+    </motion.h2>
+    <motion.div
+      class="controls"
+      :initial="{ opacity: 0, y: 20, scale: 0.95 }"
+      :animate="{ opacity: 1, y: 0, scale: 1 }"
+      :transition="{
+        duration: 0.6,
+        type: 'spring',
+        stiffness: 150,
+        damping: 18,
+        delay: 0.3,
+      }"
+    >
+      <!-- Use the new DivisionInput component -->
+      <DivisionInput
+        :dividend="Number(dividend)"
+        :divisor="Number(divisor)"
+        @update:dividend="dividend = $event"
+        @update:divisor="divisor = $event"
+      />
+      <motion.button
+        @click="handleVisualize"
+        :disabled="isAnimating"
+        :while-hover="{ scale: 1.05 }"
+        :while-press="{ scale: 0.95 }"
+        class="visualize-button"
+        :class="{ animating: isAnimating }"
+      >
+        {{ isAnimating ? "Go!" : "Visualize" }}
+      </motion.button>
+    </motion.div>
 
+    <!-- Flying Digits Animation Layer -->
+    <AnimatePresence>
+      <div v-if="flyingDigits.length > 0" class="flying-digits-container">
+        <motion.div
+          v-for="flyingDigit in flyingDigits"
+          :key="flyingDigit.id"
+          class="flying-digit"
+          :initial="{
+            x: flyingDigit.startX,
+            y: flyingDigit.startY,
+            opacity: 1,
+            scale: 1,
+            rotate: 0,
+            filter: 'hue-rotate(0deg) brightness(1) blur(0px)',
+          }"
+          :animate="{
+            x: flyingDigit.targetX,
+            y: flyingDigit.targetY,
+            opacity: 0,
+            scale: 0.3,
+            rotate: 720,
+            filter: 'hue-rotate(180deg) brightness(1.5) blur(1px)',
+          }"
+          :exit="{
+            opacity: 0,
+            scale: 0,
+            rotate: 1080,
+            filter: 'blur(5px)',
+          }"
+          :transition="{
+            duration: 0.8,
+            ease: [0.34, 1.56, 0.64, 1],
+            rotate: { duration: 0.8, ease: 'easeOut' },
+            filter: { duration: 0.6, ease: 'easeInOut' },
+          }"
+        >
+          {{ flyingDigit.digit }}
+        </motion.div>
+      </div>
+    </AnimatePresence>
+
+    <div class="step-nav">
+      <motion.button
+        @click="prevStep"
+        :disabled="currentStep === 0"
+        :while-hover="{ scale: 1.1, rotate: -2, filter: 'brightness(1.1)' }"
+        :while-tap="{ scale: 0.95, rotate: 2 }"
+        :transition="{ type: 'spring', stiffness: 400, damping: 15 }"
+      >
+        Previous
+      </motion.button>
+      <motion.span
+        :key="currentStep"
+        :initial="{ scale: 0.8, opacity: 0, y: -10 }"
+        :animate="{ scale: 1, opacity: 1, y: 0 }"
+        :transition="{ type: 'spring', stiffness: 300, damping: 20 }"
+      >
+        Step {{ currentStep + 1 }} / {{ steps.length }}
+      </motion.span>
+      <motion.button
+        @click="nextStep"
+        :disabled="currentStep >= steps.length - 1"
+        :while-hover="{ scale: 1.1, rotate: 2, filter: 'brightness(1.1)' }"
+        :while-tap="{ scale: 0.95, rotate: -2 }"
+        :transition="{ type: 'spring', stiffness: 400, damping: 15 }"
+      >
+        Next
+      </motion.button>
+    </div>
     <div v-if="steps.length > 0" class="division-area-container">
       <div class="main-content-area">
-        <LongDivisionGrid
+        <motion.div
           v-if="gridCells.length"
-          :gridCells="displayCells"
-          :rows="rows"
-          :cols="cols"
-          :currentSubStep="currentSubStepForGrid"
-          class="division-grid"
-        />
-        <LongDivisionInstructions
-          :steps="visibleInstructions"
-          :currentStep="currentStep"
-          class="division-instructions"
-        />
+          class="grid-wrapper"
+          :initial="{
+            opacity: 0,
+            scale: 0.6,
+            y: 80,
+            rotate: -5,
+            filter: 'blur(3px) brightness(0.8)',
+          }"
+          :animate="{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            rotate: 0,
+            filter: 'blur(0px) brightness(1)',
+          }"
+          :transition="{
+            duration: 1.2,
+            type: 'spring',
+            stiffness: 80,
+            damping: 20,
+            delay: 0.2,
+            filter: { duration: 0.8, ease: 'easeOut' },
+          }"
+        >
+          <LongDivisionGrid
+            :gridCells="displayCells"
+            :rows="rows"
+            :cols="cols"
+            :currentSubStep="currentSubStepForGrid"
+            :isInitialEntrance="showEntranceAnimations"
+            class="division-grid"
+          />
+        </motion.div>
+        <motion.div
+          class="instructions-wrapper"
+          :initial="{
+            opacity: 0,
+            x: 80,
+            scale: 0.9,
+            rotate: 3,
+            filter: 'hue-rotate(45deg) brightness(0.7)',
+          }"
+          :animate="{
+            opacity: 1,
+            x: 0,
+            scale: 1,
+            rotate: 0,
+            filter: 'hue-rotate(0deg) brightness(1)',
+          }"
+          :transition="{
+            duration: 1.0,
+            type: 'spring',
+            stiffness: 120,
+            damping: 18,
+            delay: 0.6,
+            filter: { duration: 0.7, ease: 'easeInOut' },
+          }"
+        >
+          <LongDivisionInstructions
+            :steps="visibleInstructions"
+            :currentStep="currentStep"
+            class="division-instructions"
+          />
+        </motion.div>
       </div>
-      <div class="step-nav">
-        <button @click="prevStep" :disabled="currentStep === 0">
-          Previous
-        </button>
-        <span>Step {{ currentStep + 1 }} / {{ steps.length }}</span>
-        <button @click="nextStep" :disabled="currentStep >= steps.length - 1">
-          Next
-        </button>
-      </div>
+
+      <!-- Final Answer Celebration -->
+      <FinalAnswerCelebration
+        :isVisible="isDivisionComplete"
+        :answer="finalQuotient"
+        :remainder="finalRemainder"
+      />
     </div>
+
     <div
       v-else-if="dividend !== null && divisor !== null"
       class="placeholder-text"
@@ -88,7 +401,6 @@ const visibleInstructions = computed(() =>
   </div>
 </template>
 
-<style scoped src="./long-division-styles.css"></style>
 <style scoped>
 .long-division-page-container {
   max-width: 800px;
@@ -172,47 +484,9 @@ const visibleInstructions = computed(() =>
 }
 */
 
-.division-input-wrapper {
-  display: flex;
-  align-items: center; /* Vertically align items */
-  background-color: #fff;
-  padding: 0.3rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.divisor-styled-input,
-.dividend-styled-input {
-  border: none;
-  padding: 0.6rem 0.4rem; /* Adjusted padding */
-  font-size: 1.2em; /* Larger font size */
-  text-align: right;
-  background-color: transparent;
-  color: #333;
-  outline: none; /* Remove focus outline, rely on wrapper or other cues */
-}
-
-.divisor-styled-input {
-  width: 100px; /* Adjusted width */
-}
-
-.dividend-styled-input {
-  width: 140px; /* Adjusted width */
-  border-top: 2px solid #555; /* Vinculum (bar over dividend) */
-  margin-left: -2px; /* Pull closer to the arm if arm has width */
-  padding-top: 0.4rem; /* Adjust to align text nicely under the bar */
-  border-radius: 0 4px 4px 0; /* Optional: round outer corners */
-}
-
-.division-bracket-arm {
-  display: inline-block;
-  width: 2px;
-  background-color: #555;
-  height: 2.2em; /* Approximate height, adjust as needed */
-  margin: 0 0.2rem; /* Space around the arm */
-  align-self: center; /* Ensure it's centered with inputs */
-}
+/* Styles for .division-input-wrapper, .divisor-styled-input, 
+   .dividend-styled-input, and .division-bracket-arm 
+   are now in DivisionInput.vue and can be removed from here. */
 
 .controls button {
   padding: 0.6rem 1.2rem;
@@ -229,6 +503,101 @@ const visibleInstructions = computed(() =>
   background-color: #36a471; /* Darker green on hover */
 }
 
+.visualize-button {
+  position: relative;
+  overflow: hidden;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #42b883, #36a471, #2d8a5f);
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+  box-shadow: 0 4px 15px rgba(66, 184, 131, 0.3);
+  border-radius: 8px;
+}
+
+.visualize-button.animating {
+  background: linear-gradient(135deg, #ff6b6b, #ffa500, #ff1493);
+  background-size: 200% 200%;
+  animation: magicGradient 1s ease infinite;
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.5), 0 0 40px rgba(255, 165, 0, 0.3);
+}
+
+.visualize-button:disabled {
+  cursor: not-allowed;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes magicPulse {
+  0% {
+    text-shadow: 0 0 5px rgba(100, 255, 218, 1),
+      0 0 15px rgba(100, 255, 218, 0.8), 0 0 25px rgba(100, 255, 218, 0.6);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(100, 255, 218, 1),
+      0 0 25px rgba(100, 255, 218, 0.9), 0 0 40px rgba(100, 255, 218, 0.7),
+      0 0 55px rgba(100, 255, 218, 0.5);
+  }
+  100% {
+    text-shadow: 0 0 5px rgba(100, 255, 218, 1),
+      0 0 15px rgba(100, 255, 218, 0.8), 0 0 25px rgba(100, 255, 218, 0.6);
+  }
+}
+
+/* Flying Digits Styles */
+.flying-digits-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.flying-digit {
+  position: absolute;
+  font-size: 32px;
+  font-weight: bold;
+  color: #42b883;
+  text-shadow: 0 0 5px rgba(66, 184, 131, 1), 0 0 15px rgba(66, 184, 131, 0.8),
+    0 0 25px rgba(66, 184, 131, 0.6), 0 0 35px rgba(66, 184, 131, 0.4);
+  font-family: "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Courier New",
+    monospace;
+  pointer-events: none;
+  will-change: transform, opacity, filter;
+  z-index: 1001;
+  background: linear-gradient(45deg, #42b883, #36a471, #64ffda);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradientFlow 2s ease-in-out infinite;
+}
+
 @media (prefers-color-scheme: dark) {
   .controls {
     background-color: #2a2a2a;
@@ -241,25 +610,10 @@ const visibleInstructions = computed(() =>
   }
   */
 
-  .division-input-wrapper {
-    background-color: #3a3a3a; /* Darker background for the input group */
-    border: 1px solid #555;
-  }
+  /* Dark mode styles for .division-input-wrapper, .divisor-styled-input, 
+     .dividend-styled-input, and .division-bracket-arm 
+     are now in DivisionInput.vue and can be removed from here. */
 
-  .divisor-styled-input,
-  .dividend-styled-input {
-    color: rgba(255, 255, 255, 0.87);
-    background-color: transparent;
-  }
-
-  .dividend-styled-input {
-    border-top: 2px solid #bbb; /* Lighter bar for dark mode */
-  }
-
-  .division-bracket-arm {
-    background-color: #bbb; /* Lighter arm for dark mode */
-  }
-  
   /* Remove or adapt old general input styles for dark mode */
   /*
   .controls input[type="number"] {
@@ -274,6 +628,28 @@ const visibleInstructions = computed(() =>
   }
   .controls button:hover {
     background-color: #36a471;
+  }
+
+  .visualize-button {
+    background: linear-gradient(135deg, #42b883, #36a471, #2d8a5f);
+    box-shadow: 0 4px 15px rgba(66, 184, 131, 0.4);
+  }
+
+  .visualize-button.animating {
+    background: linear-gradient(135deg, #ff6b6b, #ffa500, #ff1493);
+    box-shadow: 0 0 25px rgba(255, 107, 107, 0.6),
+      0 0 45px rgba(255, 165, 0, 0.4);
+  }
+
+  .flying-digit {
+    background: linear-gradient(45deg, #64ffda, #42b883, #00e676, #1de9b6);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: gradientFlow 2s ease-in-out infinite,
+      magicPulse 1.5s ease-in-out infinite;
+    text-shadow: none; /* Remove text-shadow since we're using background-clip */
   }
 }
 
@@ -292,18 +668,47 @@ const visibleInstructions = computed(() =>
 .step-nav button {
   padding: 0.5rem 1rem;
   font-size: 0.95em;
-  background: #e6f4ea; /* Light green background */
+  background: linear-gradient(
+    135deg,
+    #e6f4ea,
+    #d1ecd5
+  ); /* Gradient background */
   color: #2a663e; /* Darker green text */
   border: 2px solid #a5d6b8; /* Greenish border */
-  border-radius: 8px;
+  border-radius: 12px; /* More rounded for playfulness */
   font-weight: bold;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(165, 214, 184, 0.3);
+}
+
+.step-nav button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.step-nav button:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .step-nav button:hover:not(:disabled) {
-  background: #d1ecd5;
+  background: linear-gradient(135deg, #d1ecd5, #b8e6c1);
   border-color: #8ccaa1;
+  box-shadow: 0 4px 15px rgba(165, 214, 184, 0.5);
+  transform: translateY(-1px);
 }
 
 .step-nav button:disabled {
@@ -315,18 +720,33 @@ const visibleInstructions = computed(() =>
 
 @media (prefers-color-scheme: dark) {
   .step-nav button {
-    background: #2c4c3b; /* Dark green background */
+    background: linear-gradient(
+      135deg,
+      #2c4c3b,
+      #355a46
+    ); /* Dark gradient background */
     color: #b0e6c2; /* Lighter green text */
     border-color: #3e7050;
+    box-shadow: 0 2px 8px rgba(62, 112, 80, 0.4);
+  }
+  .step-nav button::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(176, 230, 194, 0.2),
+      transparent
+    );
   }
   .step-nav button:hover:not(:disabled) {
-    background: #355a46;
+    background: linear-gradient(135deg, #355a46, #4a855f);
     border-color: #4a855f;
+    box-shadow: 0 4px 15px rgba(62, 112, 80, 0.6);
   }
   .step-nav button:disabled {
-    background: #333;
+    background: linear-gradient(135deg, #333, #2a2a2a);
     color: #777;
     border-color: #555;
+    box-shadow: none;
   }
 }
 

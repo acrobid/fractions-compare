@@ -9,7 +9,27 @@
   padding: 20px; /* Increased padding */
   border-radius: 15px; /* Slightly more rounded corners */
   box-shadow: 0 6px 20px 0 #00000066; /* Enhanced shadow for a cooler look */
+  position: relative;
+  overflow: visible; /* Allow particle effects to show */
   /* overflow: auto; */ /* Add if content might exceed bounds, for scrollability */
+}
+
+.math-grid::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  background: linear-gradient(45deg, #34d39920, #28a74520, #42b88320);
+  border-radius: 20px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.math-grid:hover::before {
+  opacity: 1;
 }
 
 .graph-paper {
@@ -23,15 +43,47 @@
   position: relative;
   transition: background 0.2s, transform 0.1s ease-out;
   color: #c9d1d9; /* Default text color for cells, can be overridden by specific types */
+  will-change: transform;
 }
 
-/* Optional hover effect, uncomment if desired */
-/*
-.graph-paper:hover {
-  transform: scale(1.05);
-  background: #2a2f35;
+.graph-paper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle, transparent 30%, rgba(66, 184, 131, 0.1) 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
-*/
+
+.graph-paper:hover::after {
+  opacity: 1;
+}
+
+/* Sparkle animation for active cells */
+.cell-hl-active::before {
+  content: '✨';
+  position: absolute;
+  top: -10px;
+  right: -5px;
+  font-size: 12px;
+  animation: sparkle 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+@keyframes sparkle {
+  0%, 100% { 
+    opacity: 0; 
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% { 
+    opacity: 1; 
+    transform: scale(1) rotate(180deg);
+  }
+}
 
 .bracket-horizontal {
   border-top: 4px solid #adbac7 !important; /* Thicker bracket */
@@ -62,28 +114,68 @@
 /* Highlighting Styles for Dark Theme */
 .cell-hl-result {
   background: #5c2e2e;
+  position: relative;
+  overflow: visible;
 }
 
 .cell-hl-brought-down {
   color: #b2f2bb; /* Lighter green text */
   background: #2e5c2e;
   border-radius: 8px;
+  position: relative;
+  box-shadow: 0 0 15px rgba(178, 242, 187, 0.4);
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .cell-hl-multiply {
   color: #b3d4fc; /* Lighter blue text */
   background: #2e3e5c;
   border-radius: 8px;
+  box-shadow: 0 0 15px rgba(179, 212, 252, 0.4);
+  animation: glow-blue 2s ease-in-out infinite alternate;
 }
 
 .cell-hl-active {
   background: #439c49; /* Slightly lighter dark background for active cell */
   color: #e6edf3; /* Ensure text is light */
   transform: scale(1.02); /* Slight scale effect when active */
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(67, 156, 73, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.1);
+  animation: activeGlow 1.5s ease-in-out infinite alternate;
+  position: relative;
+  z-index: 5;
 }
 
 .cell-hl-subtract {
   color: #fff7b3; /* Lighter yellow text */
   background: #5c5a2e;
   border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 247, 179, 0.4);
+  animation: glow-yellow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes glow-blue {
+  0% { box-shadow: 0 0 15px rgba(179, 212, 252, 0.4); }
+  100% { box-shadow: 0 0 25px rgba(179, 212, 252, 0.8); }
+}
+
+@keyframes glow-yellow {
+  0% { box-shadow: 0 0 15px rgba(255, 247, 179, 0.4); }
+  100% { box-shadow: 0 0 25px rgba(255, 247, 179, 0.8); }
+}
+
+@keyframes activeGlow {
+  0% { 
+    box-shadow: 0 0 20px rgba(67, 156, 73, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    transform: scale(1.02);
+  }
+  100% { 
+    box-shadow: 0 0 30px rgba(67, 156, 73, 0.9), inset 0 0 30px rgba(255, 255, 255, 0.2);
+    transform: scale(1.08);
+  }
 }

@@ -27,23 +27,109 @@
         &nbsp;
       </span>
 
-      <!-- Case 2: Dividend cell, not animating as source, always visible if content (no animation wrapper) -->
-      <span v-else-if="cell.id.startsWith('d-') && cell.content !== ''">
-        {{ cell.content }}
-      </span>
-
-      <!-- Case 3: Other cells that should display and have content (animated: appear or bring-down) -->
+      <!-- Case 2: Dividend cell with entrance animation if it's the initial entrance -->
       <Motion
-        v-else-if="shouldDisplayCell(cell) && cell.content !== ''"
-        :key="cell.id"
-        :initial="getAnimationInitialState(cell)"
-        :animate="motionAnimateTarget"
-        :transition="motionTransition"
+        v-else-if="
+          cell.id.startsWith('d-') && cell.content !== '' && isInitialEntrance
+        "
+        :key="`entranced-${cell.id}`"
+        :initial="{
+          opacity: 0,
+          scale: 0.3,
+          y: -40,
+          rotate: -25,
+          filter: 'hue-rotate(120deg) brightness(1.8) blur(2px)',
+        }"
+        :animate="{
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          rotate: 0,
+          filter: 'hue-rotate(0deg) brightness(1) blur(0px)',
+        }"
+        :transition="{
+          duration: 0.8,
+          type: 'spring',
+          stiffness: 150,
+          damping: 18,
+          delay: parseInt(cell.id.split('-')[1]) * 0.12 + 0.3, // Stagger based on digit index
+          filter: { duration: 0.6, ease: 'easeOut' },
+        }"
       >
         <span>{{ cell.content }}</span>
       </Motion>
 
-      <!-- Case 4: Empty cells that should be displayed (e.g. to maintain grid structure, no animation) -->
+      <!-- Case 3: Divisor cell with entrance animation if it's the initial entrance -->
+      <Motion
+        v-else-if="
+          cell.id === 'divisor' && cell.content !== '' && isInitialEntrance
+        "
+        :key="`entrance-${cell.id}`"
+        :initial="{
+          opacity: 0,
+          scale: 0.2,
+          x: -60,
+          rotate: 30,
+          filter: 'hue-rotate(240deg) brightness(2.2) blur(3px)',
+        }"
+        :animate="{
+          opacity: 1,
+          scale: 1,
+          x: 0,
+          rotate: 0,
+          filter: 'hue-rotate(0deg) brightness(1) blur(0px)',
+        }"
+        :transition="{
+          duration: 1.0,
+          type: 'spring',
+          stiffness: 120,
+          damping: 20,
+          delay: 0.1, // Divisor appears first
+          filter: { duration: 0.7, ease: 'easeInOut' },
+        }"
+      >
+        <span>{{ cell.content }}</span>
+      </Motion>
+
+      <!-- Case 4: Regular dividend/divisor cells without entrance animation -->
+      <span
+        v-else-if="
+          (cell.id.startsWith('d-') || cell.id === 'divisor') &&
+          cell.content !== '' &&
+          !isInitialEntrance
+        "
+      >
+        {{ cell.content }}
+      </span>
+
+      <!-- Case 5: Other cells that should display and have content (animated: appear or bring-down) -->
+      <!-- Exclude dividend/divisor cells when isInitialEntrance is true to avoid conflicts -->
+      <Motion
+        v-else-if="
+          shouldDisplayCell(cell) &&
+          cell.content !== '' &&
+          !(
+            isInitialEntrance &&
+            (cell.id.startsWith('d-') || cell.id === 'divisor')
+          )
+        "
+        :key="`animation-${cell.id}`"
+        :initial="getAnimationInitialState(cell)"
+        :animate="{
+          ...motionAnimateTarget,
+        }"
+        :transition="{
+          ...motionTransition,
+          duration: cell.animateFromCellId ? 0.8 : motionTransition.duration,
+          type: cell.animateFromCellId ? 'spring' : motionTransition.type,
+          stiffness: cell.animateFromCellId ? 200 : motionTransition.stiffness,
+          damping: cell.animateFromCellId ? 20 : motionTransition.damping,
+        }"
+      >
+        <span>{{ cell.content }}</span>
+      </Motion>
+
+      <!-- Case 6: Empty cells that should be displayed (e.g. to maintain grid structure, no animation) -->
       <span
         v-else-if="
           shouldDisplayCell(cell) &&
@@ -54,7 +140,7 @@
         &nbsp;
       </span>
 
-      <!-- Case 5: Space cells or cells that shouldn't be displayed yet (render nothing) -->
+      <!-- Case 7: Space cells or cells that shouldn't be displayed yet (render nothing) -->
     </div>
   </div>
 </template>
@@ -64,13 +150,27 @@ import { defineProps, toRefs } from "vue";
 import type { GridCell } from "../composables/useLongDivision";
 import { Motion } from "motion-v";
 
-const motionInitialAppear = { opacity: 0, y: 10 };
-const motionAnimateTarget = { opacity: 1, x: 0, y: 0 }; // Universal target for all animations
+const motionInitialAppear = {
+  opacity: 0,
+  y: 25,
+  scale: 0.7,
+  rotate: -12,
+  filter: "hue-rotate(60deg) brightness(0.8) blur(1px)",
+};
+const motionAnimateTarget = {
+  opacity: 1,
+  x: 0,
+  y: 0,
+  scale: 1,
+  rotate: 0,
+  filter: "hue-rotate(0deg) brightness(1) blur(0px)",
+}; // Universal target for all animations
 const motionTransition = {
-  duration: 0.3,
+  duration: 0.7,
   type: "spring",
   stiffness: 250,
-  damping: 10,
+  damping: 18,
+  filter: { duration: 0.5, ease: "easeOut" },
 };
 
 const props = defineProps<{
@@ -78,9 +178,10 @@ const props = defineProps<{
   rows: number;
   cols: number;
   currentSubStep: number;
+  isInitialEntrance?: boolean; // New prop to control entrance animations
 }>();
 
-const { gridCells, currentSubStep } = toRefs(props);
+const { gridCells, currentSubStep, isInitialEntrance } = toRefs(props);
 
 const getCellById = (id: string): GridCell | undefined => {
   return gridCells.value.find((c) => c.id === id);
@@ -107,11 +208,18 @@ const getAnimationInitialState = (cell: GridCell) => {
         (sourceCell.gridColumn - cell.gridColumn) * effectiveCellDimension;
       const deltaY =
         (sourceCell.gridRow - cell.gridRow) * effectiveCellDimension;
-      return { opacity: 0, x: deltaX, y: deltaY }; // Start at source, invisible, then move and fade in
+      return {
+        opacity: 1,
+        x: deltaX,
+        y: deltaY,
+        scale: 1.3,
+        rotate: 20,
+        filter: "hue-rotate(180deg) brightness(1.6) blur(1px)",
+      }; // Start at source with magical emphasis
     }
   }
   // Default initial state for standard "appear" animations:
-  return motionInitialAppear; // { opacity: 0, y: 10 }
+  return motionInitialAppear; // Enhanced initial state
 };
 
 const shouldDisplayCell = (cell: GridCell): boolean => {
