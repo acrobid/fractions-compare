@@ -49,28 +49,31 @@ const visibleInstructions = computed(() =>
       <button @click="generate">Visualize</button>
     </div>
 
-    <div v-if="steps.length > 0">
+    <div v-if="steps.length > 0" class="division-area-container">
+      <div class="main-content-area">
+        <LongDivisionGrid
+          v-if="gridCells.length"
+          :gridCells="displayCells"
+          :rows="rows"
+          :cols="cols"
+          :currentSubStep="currentSubStepForGrid"
+          class="division-grid"
+        />
+        <LongDivisionInstructions
+          :steps="visibleInstructions"
+          :currentStep="currentStep"
+          class="division-instructions"
+        />
+      </div>
       <div class="step-nav">
         <button @click="prevStep" :disabled="currentStep === 0">
           Previous
         </button>
         <span>Step {{ currentStep + 1 }} / {{ steps.length }}</span>
         <button @click="nextStep" :disabled="currentStep >= steps.length - 1">
-          <!-- Fixed condition here -->
           Next
         </button>
       </div>
-      <LongDivisionGrid
-        v-if="gridCells.length"
-        :gridCells="displayCells"
-        :rows="rows"
-        :cols="cols"
-        :currentSubStep="currentSubStepForGrid"
-      />
-      <LongDivisionInstructions
-        :steps="visibleInstructions"
-        :currentStep="currentStep"
-      />
     </div>
     <div
       v-else-if="dividend !== null && divisor !== null"
@@ -103,6 +106,34 @@ const visibleInstructions = computed(() =>
   .long-division-page-container h2 {
     color: #42b883; /* Keep green in dark mode, or adjust if too bright */
   }
+}
+
+.division-area-container {
+  display: flex;
+  flex-direction: column; /* Stack grid/instructions area above nav */
+  align-items: center; /* Center the content horizontally */
+}
+
+.main-content-area {
+  display: flex;
+  flex-direction: row; /* Grid and Instructions side-by-side */
+  justify-content: center; /* Center them if they don't fill the space */
+  align-items: flex-start; /* Align to the top */
+  gap: 1.5rem; /* Space between grid and instructions */
+  width: 100%; /* Allow it to take full width for responsiveness */
+  max-width: 1200px; /* Max width for the content area */
+  margin-bottom: 1.5rem; /* Space before step navigation */
+}
+
+.division-grid {
+  flex-grow: 1; /* Allow grid to take available space */
+  /* max-width: 60%; /* Optional: constrain grid width */
+}
+
+.division-instructions {
+  flex-grow: 1; /* Allow instructions to take available space */
+  /* max-width: 40%; /* Optional: constrain instructions width */
+  min-width: 300px; /* Minimum width for instructions */
 }
 
 .controls {

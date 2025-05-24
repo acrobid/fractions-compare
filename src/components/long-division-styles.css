@@ -7,7 +7,6 @@
   font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', 'Courier New', monospace;
   font-size: 28px; /* Increased font size for larger numbers */
   padding: 20px; /* Increased padding */
-  margin-top: 2rem; /* Increased margin-top */
   border-radius: 15px; /* Slightly more rounded corners */
   box-shadow: 0 6px 20px 0 #00000066; /* Enhanced shadow for a cooler look */
   /* overflow: auto; */ /* Add if content might exceed bounds, for scrollability */
