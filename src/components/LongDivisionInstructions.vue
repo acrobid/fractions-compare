@@ -20,20 +20,29 @@
           opacity: 0,
           x: -30,
           scale: 0.95,
-          filter: 'blur(2px) brightness(0.7)',
+          paddingTop: '0.6rem',
+          paddingBottom: '0.6rem',
+          paddingLeft: '0.8rem',
+          paddingRight: '0.8rem',
+          filter: 'blur(2px) brightness(0.7) hue-rotate(0deg)',
         }"
         :animate="{
           opacity: 1,
-          transformOrigin: 'left center',
-          padding: idx < currentStep ? 'unset' : '',
           x: 0,
-          scale: idx === currentStep ? 1.05 : idx < currentStep ? 0.75 : 1,
+          scale: idx === currentStep ? 1.05 : idx < currentStep ? 0.85 : 1,
+          paddingTop: idx < currentStep ? '0.2rem' : '0.6rem',
+          paddingBottom: idx < currentStep ? '0.2rem' : '0.6rem',
+          paddingLeft: idx < currentStep ? '0.4rem' : '0.8rem',
+          paddingRight: idx < currentStep ? '0.4rem' : '0.8rem',
           filter:
             idx === currentStep
               ? 'blur(0px) brightness(1.1) hue-rotate(5deg)'
               : idx < currentStep
-              ? 'blur(0px) brightness(0.8)'
-              : 'blur(0px) brightness(1)',
+              ? 'blur(0px) brightness(0.8) hue-rotate(0deg)'
+              : 'blur(0px) brightness(1) hue-rotate(0deg)',
+        }"
+        :style="{
+          transformOrigin: 'left center',
         }"
         :transition="{
           duration: 0.6,
@@ -46,7 +55,7 @@
         :while-hover="{
           scale: 1.03,
           x: 5,
-          filter: 'brightness(1.2) hue-rotate(10deg)',
+          filter: 'brightness(1.2) hue-rotate(10deg) blur(0px)',
         }"
       >
         <motion.span
@@ -63,7 +72,10 @@
           :while-hover="{
             scale: 1.1,
             rotate: 2,
-            filter: 'hue-rotate(30deg) brightness(1.3)',
+            filter: 'hue-rotate(30deg) brightness(1.3) blur(0px)',
+          }"
+          :style="{
+            filter: 'hue-rotate(0deg) brightness(1) blur(0px)',
           }"
         >
           Step {{ idx + 1 }}:

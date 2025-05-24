@@ -353,9 +353,13 @@ const confettiPieces = ref(
 
 .remainder-text {
   font-size: 1.1rem;
-  color: #764ba2;
   font-weight: 600;
-  margin-top: 0.5rem;
+  margin-top: 0.8rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-block;
 }
 
 .success-message {
@@ -458,7 +462,8 @@ const confettiPieces = ref(
   }
 
   .remainder-text {
-    color: #74b9ff;
+    background: rgba(255, 255, 255, 0.9);
+    color: #2c3e50;
   }
 }
 </style>
