@@ -2,9 +2,16 @@
 import { computed, ref, onMounted, onUnmounted, watch } from "vue";
 import { motion } from "motion-v";
 
-const props = defineProps<{
+const {
+  numerator,
+  denominator,
+  height = "160px",
+  width = "160px",
+} = defineProps<{
   numerator: number;
   denominator: number;
+  height?: string;
+  width?: string;
 }>();
 
 // Generate unique ID for this component instance
@@ -12,7 +19,7 @@ const componentId = Math.random().toString(36).substr(2, 9);
 
 // Control animation state - only animate on first mount
 const hasAnimated = ref(false);
-const previousNumerator = ref(props.numerator);
+const previousNumerator = ref(numerator);
 const isDestructing = ref(false);
 const destructionTimer = ref<number | null>(null);
 
@@ -30,7 +37,7 @@ onUnmounted(() => {
 
 // Watch for decreases in numerator to trigger destruction animation
 watch(
-  () => props.numerator,
+  () => numerator,
   (newVal, oldVal) => {
     // Clear any existing timer
     if (destructionTimer.value) {
@@ -57,18 +64,14 @@ watch(
 
 const segments = computed(() => {
   const result = [];
-  const currentNum = isDestructing.value
-    ? previousNumerator.value
-    : props.numerator;
+  const currentNum = isDestructing.value ? previousNumerator.value : numerator;
 
-  for (let i = 0; i < props.denominator; i++) {
-    const startAngle = (i * 360) / props.denominator;
-    const endAngle = ((i + 1) * 360) / props.denominator;
+  for (let i = 0; i < denominator; i++) {
+    const startAngle = (i * 360) / denominator;
+    const endAngle = ((i + 1) * 360) / denominator;
     const filled = i < currentNum;
     const shouldDestruct =
-      isDestructing.value &&
-      i >= props.numerator &&
-      i < previousNumerator.value;
+      isDestructing.value && i >= numerator && i < previousNumerator.value;
 
     result.push({
       startAngle,
@@ -260,7 +263,7 @@ function createArcPath(startAngle: number, endAngle: number): string {
   </motion.div>
 </template>
 
-<style scoped>
+<style>
 .circle-container {
   display: flex;
   flex-direction: column;
@@ -298,8 +301,8 @@ function createArcPath(startAngle: number, endAngle: number): string {
   }
 
   .circle {
-    width: 160px;
-    height: 160px;
+    width: v-bind(width);
+    height: v-bind(height);
   }
 
   .fraction-text {

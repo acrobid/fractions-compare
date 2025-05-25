@@ -137,6 +137,8 @@ const toggleSimplify = () => {
         <FractionCircle
           :numerator="fraction.numerator"
           :denominator="fraction.denominator"
+          height="25vh"
+          width="25vh"
         />
       </div>
     </div>

@@ -44,7 +44,31 @@ const areEqual = computed(() => {
             :denominator="fraction1.denominator"
           />
         </div>
+        <div class="result" :class="{ equal: areEqual }">
+          <div class="result-text">
+            {{
+              areEqual ? "EQUAL FRACTIONS!" : "These fractions are different."
+            }}
+          </div>
 
+          <div v-if="areEqual" class="celebration">
+            <div class="confetti-container">
+              <div
+                v-for="n in 20"
+                :key="n"
+                class="confetti"
+                :style="{
+                  '--delay': `${Math.random() * 3}s`,
+                  '--rotation': `${Math.random() * 360}deg`,
+                  '--position': `${Math.random() * 100}%`,
+                  '--size': `${Math.random() * 10 + 5}px`,
+                  '--color': `hsl(${Math.random() * 360}, 90%, 60%)`,
+                }"
+              ></div>
+            </div>
+            <div class="shine"></div>
+          </div>
+        </div>
         <div class="fraction">
           <FractionInput
             label="Second Fraction"
@@ -55,30 +79,6 @@ const areEqual = computed(() => {
             :numerator="fraction2.numerator"
             :denominator="fraction2.denominator"
           />
-        </div>
-      </div>
-
-      <div class="result" :class="{ equal: areEqual }">
-        <div class="result-text">
-          {{ areEqual ? "EQUAL FRACTIONS!" : "These fractions are different." }}
-        </div>
-
-        <div v-if="areEqual" class="celebration">
-          <div class="confetti-container">
-            <div
-              v-for="n in 20"
-              :key="n"
-              class="confetti"
-              :style="{
-                '--delay': `${Math.random() * 3}s`,
-                '--rotation': `${Math.random() * 360}deg`,
-                '--position': `${Math.random() * 100}%`,
-                '--size': `${Math.random() * 10 + 5}px`,
-                '--color': `hsl(${Math.random() * 360}, 90%, 60%)`,
-              }"
-            ></div>
-          </div>
-          <div class="shine"></div>
         </div>
       </div>
     </div>
@@ -129,7 +129,6 @@ h1 {
 .result {
   text-align: center;
   font-size: 1rem;
-  margin-top: 1.5rem;
   padding: 1rem;
   border-radius: 12px;
   background-color: #f0f0f0;
