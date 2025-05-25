@@ -225,6 +225,7 @@ input {
   color: #42b883;
   font-size: 1rem;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 input::-webkit-outer-spin-button,

@@ -403,10 +403,18 @@ watch(isDivisionComplete, async (isComplete) => {
 
 <style scoped>
 .long-division-page-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .long-division-page-container {
+    max-width: 100%;
+    padding: 0.5rem;
+  }
 }
 
 .long-division-page-container h2 {
@@ -414,6 +422,21 @@ watch(isDivisionComplete, async (isComplete) => {
   margin-bottom: 1.5rem;
   color: #42b883; /* App.vue h1 color */
   font-size: 1.8em;
+}
+
+/* Mobile responsive heading */
+@media (max-width: 768px) {
+  .long-division-page-container h2 {
+    font-size: 1.5em;
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .long-division-page-container h2 {
+    font-size: 1.3em;
+    margin-bottom: 0.75rem;
+  }
 }
 
 /* Dark mode for h2 is handled by global styles if body color changes, 
@@ -432,13 +455,22 @@ watch(isDivisionComplete, async (isComplete) => {
 
 .main-content-area {
   display: flex;
-  flex-direction: row; /* Grid and Instructions side-by-side */
+  flex-direction: row; /* Grid and Instructions side-by-side on desktop */
   justify-content: center; /* Center them if they don't fill the space */
   align-items: flex-start; /* Align to the top */
   gap: 1.5rem; /* Space between grid and instructions */
   width: 100%; /* Allow it to take full width for responsiveness */
   max-width: 1200px; /* Max width for the content area */
   margin-bottom: 1.5rem; /* Space before step navigation */
+}
+
+/* Mobile responsive: Stack grid above instructions */
+@media (max-width: 768px) {
+  .main-content-area {
+    flex-direction: column; /* Stack vertically on mobile */
+    gap: 1rem; /* Reduced gap for mobile */
+    align-items: center; /* Center both elements */
+  }
 }
 
 .division-grid {
@@ -452,6 +484,22 @@ watch(isDivisionComplete, async (isComplete) => {
   min-width: 300px; /* Minimum width for instructions */
 }
 
+/* Mobile responsive adjustments for grid and instructions */
+@media (max-width: 768px) {
+  .division-grid {
+    width: 100%;
+    max-width: 100%;
+    flex-grow: 0; /* Don't grow on mobile, use natural size */
+  }
+
+  .division-instructions {
+    width: 100%;
+    max-width: 100%;
+    min-width: auto; /* Remove min-width constraint on mobile */
+    flex-grow: 0; /* Don't grow on mobile, use natural size */
+  }
+}
+
 .controls {
   display: flex;
   justify-content: center;
@@ -462,6 +510,23 @@ watch(isDivisionComplete, async (isComplete) => {
   background-color: #f0f2f5;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+
+/* Mobile responsive controls */
+@media (max-width: 768px) {
+  .controls {
+    gap: 1rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 }
 
 /* Remove old label styles as they are no longer used */
@@ -514,6 +579,23 @@ watch(isDivisionComplete, async (isComplete) => {
   animation: gradientShift 3s ease infinite;
   box-shadow: 0 4px 15px rgba(66, 184, 131, 0.3);
   border-radius: 8px;
+}
+
+/* Mobile responsive visualize button */
+@media (max-width: 768px) {
+  .visualize-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9em;
+    letter-spacing: 0.5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .visualize-button {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85em;
+    letter-spacing: 0.3px;
+  }
 }
 
 .visualize-button.animating {
@@ -598,6 +680,19 @@ watch(isDivisionComplete, async (isComplete) => {
   animation: gradientFlow 2s ease-in-out infinite;
 }
 
+/* Mobile responsive flying digits */
+@media (max-width: 768px) {
+  .flying-digit {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .flying-digit {
+    font-size: 20px;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .controls {
     background-color: #2a2a2a;
@@ -651,6 +746,37 @@ watch(isDivisionComplete, async (isComplete) => {
       magicPulse 1.5s ease-in-out infinite;
     text-shadow: none; /* Remove text-shadow since we're using background-clip */
   }
+
+  /* Dark mode step nav buttons */
+  .step-nav button {
+    background: linear-gradient(
+      135deg,
+      #2c4c3b,
+      #355a46
+    ); /* Dark gradient background */
+    color: #b0e6c2; /* Lighter green text */
+    border-color: #3e7050;
+    box-shadow: 0 2px 8px rgba(62, 112, 80, 0.4);
+  }
+  .step-nav button::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(176, 230, 194, 0.2),
+      transparent
+    );
+  }
+  .step-nav button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #355a46, #4a855f);
+    border-color: #4a855f;
+    box-shadow: 0 4px 15px rgba(62, 112, 80, 0.6);
+  }
+  .step-nav button:disabled {
+    background: linear-gradient(135deg, #333, #2a2a2a);
+    color: #777;
+    border-color: #555;
+    box-shadow: none;
+  }
 }
 
 .step-nav {
@@ -663,6 +789,24 @@ watch(isDivisionComplete, async (isComplete) => {
   font-family: "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Courier New",
     /* Keeping this distinct for now */ monospace;
   font-size: 1em;
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+
+/* Mobile responsive step navigation */
+@media (max-width: 768px) {
+  .step-nav {
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9em;
+  }
+}
+
+@media (max-width: 480px) {
+  .step-nav {
+    gap: 0.5rem;
+    font-size: 0.85em;
+  }
 }
 
 .step-nav button {
@@ -682,6 +826,23 @@ watch(isDivisionComplete, async (isComplete) => {
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(165, 214, 184, 0.3);
+}
+
+/* Mobile responsive step nav buttons */
+@media (max-width: 768px) {
+  .step-nav button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9em;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .step-nav button {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.85em;
+    border-radius: 8px;
+  }
 }
 
 .step-nav button::before {
@@ -716,38 +877,6 @@ watch(isDivisionComplete, async (isComplete) => {
   color: #888;
   border-color: #ccc;
   cursor: not-allowed;
-}
-
-@media (prefers-color-scheme: dark) {
-  .step-nav button {
-    background: linear-gradient(
-      135deg,
-      #2c4c3b,
-      #355a46
-    ); /* Dark gradient background */
-    color: #b0e6c2; /* Lighter green text */
-    border-color: #3e7050;
-    box-shadow: 0 2px 8px rgba(62, 112, 80, 0.4);
-  }
-  .step-nav button::before {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(176, 230, 194, 0.2),
-      transparent
-    );
-  }
-  .step-nav button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #355a46, #4a855f);
-    border-color: #4a855f;
-    box-shadow: 0 4px 15px rgba(62, 112, 80, 0.6);
-  }
-  .step-nav button:disabled {
-    background: linear-gradient(135deg, #333, #2a2a2a);
-    color: #777;
-    border-color: #555;
-    box-shadow: none;
-  }
 }
 
 .placeholder-text {

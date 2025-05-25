@@ -202,6 +202,7 @@ button.active {
   width: 100%;
   margin: 0.5rem 0;
   -webkit-appearance: none;
+  appearance: none;
   height: 8px;
   border-radius: 4px;
   background: #d3d3d3;

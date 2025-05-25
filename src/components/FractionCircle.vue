@@ -14,7 +14,7 @@ const componentId = Math.random().toString(36).substr(2, 9);
 const hasAnimated = ref(false);
 const previousNumerator = ref(props.numerator);
 const isDestructing = ref(false);
-const destructionTimer = ref<number | null>(null);
+const destructionTimer = ref<number | NodeJS.Timeout | null>(null);
 
 onMounted(() => {
   // Mark as animated after mount to prevent re-animation on prop changes
@@ -133,7 +133,7 @@ function createArcPath(startAngle: number, endAngle: number): string {
       animate="visible"
     >
       <!-- Static background segments - always visible, no animation needed -->
-      <template v-for="(segment, index) in segments" :key="`bg-${index}`">
+      <template v-for="(segment, _index) in segments" :key="`bg-${index}`">
         <path
           :d="createArcPath(segment.startAngle, segment.endAngle)"
           class="segment segment-background"
