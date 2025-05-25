@@ -132,8 +132,8 @@ function createArcPath(startAngle: number, endAngle: number): string {
       initial="hidden"
       animate="visible"
     >
-      <!-- Static background segments - always visible, no animation needed -->
-      <template v-for="(segment, _index) in segments" :key="`bg-${index}`">
+      <!-- @vue-expect-error some reason index is not recognized as being used -->
+      <template v-for="(segment, index) in segments" :key="`bg-${index}`">
         <path
           :d="createArcPath(segment.startAngle, segment.endAngle)"
           class="segment segment-background"
