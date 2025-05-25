@@ -14,7 +14,7 @@ const componentId = Math.random().toString(36).substr(2, 9);
 const hasAnimated = ref(false);
 const previousNumerator = ref(props.numerator);
 const isDestructing = ref(false);
-const destructionTimer = ref<number | NodeJS.Timeout | null>(null);
+const destructionTimer = ref<number | null>(null);
 
 onMounted(() => {
   // Mark as animated after mount to prevent re-animation on prop changes
@@ -41,6 +41,7 @@ watch(
     if (newVal < oldVal) {
       isDestructing.value = true;
       // Wait for destruction animation to complete before resetting
+      // @ts-ignore
       destructionTimer.value = setTimeout(() => {
         isDestructing.value = false;
         previousNumerator.value = newVal;
