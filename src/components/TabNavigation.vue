@@ -80,28 +80,49 @@ const selectTab = (tab: string) => {
     >
       Long Division
     </motion.button>
+    <motion.button
+      @click="selectTab('numberline')"
+      class="tab-button"
+      :class="{ active: modelValue === 'numberline' }"
+      :initial="{ opacity: 0, x: 15, scale: 0.95 }"
+      :animate="{ opacity: 1, x: 0, scale: 1 }"
+      :transition="{
+        duration: 0.15,
+        ease: 'easeOut',
+        delay: 0.13,
+      }"
+      :while-hover="{
+        scale: 1.02,
+        y: -1,
+      }"
+      :while-tap="{ scale: 0.98, y: 0 }"
+    >
+      Number Line
+    </motion.button>
   </motion.div>
 </template>
 
 <style scoped>
 .tab-navigation {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
   justify-content: center;
   margin-bottom: 1.5rem;
   border-bottom: 1px solid #e0e0e0;
 }
 
 .tab-button {
-  padding: 0.75rem 1.25rem;
+  padding: 0.65rem 1rem;
   border: none;
   background: none;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: #666;
   cursor: pointer;
   border-bottom: 3px solid transparent;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .tab-button.active {
