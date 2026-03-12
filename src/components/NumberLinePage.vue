@@ -8,9 +8,14 @@ const INITIAL = 5;
 
 // SVG viewBox constants
 const SW = 400;
+const SH = 90; // viewBox height
 const LX1 = 28; // line start x
 const LX2 = 372; // line end x
-const LY = 50; // line y
+const LY = 55; // line y (shifted down a little for region labels above)
+// x position for zero on the number line
+const ZERO_X = LX1 + ((0 - MIN) / (MAX - MIN)) * (LX2 - LX1);
+// marker vertical center as % of container height
+const MARKER_TOP_PCT = (LY / SH) * 100;
 
 function vx(v: number): number {
   return LX1 + ((v - MIN) / (MAX - MIN)) * (LX2 - LX1);
@@ -18,12 +23,21 @@ function vx(v: number): number {
 
 // Current state
 const currentValue = ref(INITIAL);
-const lastEquation = ref("");
+const lastOp = ref<{ equation: string; opType: "multiply" | "add" } | null>(
+  null
+);
 const atLimit = ref(false);
 
 // Marker left position as % of container width (centered on value position)
 const markerLeftPct = computed(() => (vx(currentValue.value) / SW) * 100);
 const initLeftPct = (vx(INITIAL) / SW) * 100;
+
+// Sign label and class for the value circle
+const signLabel = computed(() => {
+  if (currentValue.value > 0) return "positive";
+  if (currentValue.value < 0) return "negative";
+  return "zero";
+});
 
 // Tick data (static)
 const ticks = Array.from({ length: MAX - MIN + 1 }, (_, i) => {
@@ -33,36 +47,57 @@ const ticks = Array.from({ length: MAX - MIN + 1 }, (_, i) => {
 const minorTicks = ticks.filter((t) => !t.major);
 const majorTicks = ticks.filter((t) => t.major);
 
-// Operations
-const ops = [
-  { key: "m1", label: "× 1", sym: "×", arg: "1", type: "multiply" },
-  { key: "mn1", label: "× −1", sym: "×", arg: "−1", type: "multiply" },
-  { key: "p1", label: "+ 1", sym: "+", arg: "1", type: "add" },
-  { key: "s1", label: "− 1", sym: "−", arg: "1", type: "subtract" },
-] as const;
+// Tick color by sign (negative = red, positive = green, zero = grey)
+function tickFill(v: number): string {
+  if (v < 0) return "#e74c3c";
+  if (v > 0) return "#42b883";
+  return "#7f8c8d";
+}
 
-type OpKey = (typeof ops)[number]["key"];
+// Operation groups
+const multiplyOps = [
+  { key: "m1" as const, sym: "×", num: "1", numNeg: false },
+  { key: "mn1" as const, sym: "×", num: "−1", numNeg: true },
+];
+const addOps = [
+  { key: "p1" as const, sym: "+", num: "1", numNeg: false },
+  { key: "pn1" as const, sym: "+", num: "(−1)", numNeg: true },
+];
+
+type OpKey = "m1" | "mn1" | "p1" | "pn1";
+
+// Format a number for the equation: negative numbers get parentheses
+function formatNum(n: number): string {
+  if (n < 0) return `(−${Math.abs(n)})`;
+  return String(n);
+}
 
 function applyOp(key: OpKey) {
   const prev = currentValue.value;
   let next: number;
+  let equation: string;
+  let opType: "multiply" | "add";
 
   switch (key) {
     case "m1":
       next = prev * 1;
-      lastEquation.value = `${prev} × 1 = ${prev * 1}`;
+      equation = `${formatNum(prev)} × 1 = ${formatNum(next)}`;
+      opType = "multiply";
       break;
     case "mn1":
       next = prev * -1;
-      lastEquation.value = `${prev} × −1 = ${prev * -1}`;
+      equation = `${formatNum(prev)} × (−1) = ${formatNum(next)}`;
+      opType = "multiply";
       break;
     case "p1":
       next = prev + 1;
-      lastEquation.value = `${prev} + 1 = ${prev + 1}`;
+      equation = `${formatNum(prev)} + 1 = ${formatNum(next)}`;
+      opType = "add";
       break;
-    case "s1":
+    case "pn1":
       next = prev - 1;
-      lastEquation.value = `${prev} − 1 = ${prev - 1}`;
+      equation = `${formatNum(prev)} + (−1) = ${formatNum(next)}`;
+      opType = "add";
       break;
   }
 
@@ -72,11 +107,12 @@ function applyOp(key: OpKey) {
     setTimeout(() => (atLimit.value = false), 600);
   }
   currentValue.value = clamped;
+  lastOp.value = { equation, opType };
 }
 
 function reset() {
   currentValue.value = INITIAL;
-  lastEquation.value = "";
+  lastOp.value = null;
   atLimit.value = false;
 }
 </script>
@@ -108,42 +144,57 @@ function reset() {
           {{ currentValue }}
         </motion.span>
       </div>
+      <div
+        class="nl-sign-badge"
+        :class="{
+          'is-negative': currentValue < 0,
+          'is-zero': currentValue === 0,
+        }"
+      >
+        {{ signLabel }}
+      </div>
+      <!-- Equation display -->
       <div class="nl-equation-wrap">
-        <motion.span
-          v-if="lastEquation"
+        <motion.div
+          v-if="lastOp"
           class="nl-equation"
-          :key="lastEquation"
+          :class="lastOp.opType"
+          :key="lastOp.equation"
           :initial="{ opacity: 0, y: -8 }"
           :animate="{ opacity: 1, y: 0 }"
           :transition="{ duration: 0.25 }"
         >
-          {{ lastEquation }}
-        </motion.span>
+          {{ lastOp.equation }}
+        </motion.div>
       </div>
     </div>
 
     <!-- Number line track -->
     <div class="nl-track-area" :class="{ 'nl-shake': atLimit }">
-      <!-- Static SVG: line, arrows, ticks, labels -->
+      <!-- SVG: two-colored line, arrows, ticks, labels -->
       <svg
         class="nl-svg"
         viewBox="0 0 400 90"
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        <!-- Positive region highlight -->
-        <rect
-          :x="vx(0)"
-          :y="LY - 2"
-          :width="vx(MAX) - vx(0)"
-          height="4"
-          fill="#42b88326"
-          rx="2"
-        />
+        <!-- Region labels -->
+        <text x="14" y="18" class="nl-region-label" fill="#e74c3c">negative</text>
+        <text x="386" y="18" text-anchor="end" class="nl-region-label" fill="#42b883">positive</text>
 
-        <!-- Main line -->
+        <!-- Negative half of line (left → zero) -->
         <line
           :x1="LX1"
+          :y1="LY"
+          :x2="ZERO_X"
+          :y2="LY"
+          stroke="#e74c3c"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
+        <!-- Positive half of line (zero → right) -->
+        <line
+          :x1="ZERO_X"
           :y1="LY"
           :x2="LX2"
           :y2="LY"
@@ -152,18 +203,18 @@ function reset() {
           stroke-linecap="round"
         />
 
-        <!-- Arrow left -->
+        <!-- Arrow left (negative direction) -->
         <polygon
           :points="`${LX1 - 2},${LY - 7} ${LX1 - 15},${LY} ${LX1 - 2},${LY + 7}`"
-          fill="#42b883"
+          fill="#e74c3c"
         />
-        <!-- Arrow right -->
+        <!-- Arrow right (positive direction) -->
         <polygon
           :points="`${LX2 + 2},${LY - 7} ${LX2 + 15},${LY} ${LX2 + 2},${LY + 7}`"
           fill="#42b883"
         />
 
-        <!-- Minor ticks -->
+        <!-- Minor ticks (colored by sign) -->
         <line
           v-for="tick in minorTicks"
           :key="tick.v"
@@ -171,19 +222,19 @@ function reset() {
           :y1="LY - 5"
           :x2="tick.x"
           :y2="LY + 5"
-          stroke="#42b883"
+          :stroke="tickFill(tick.v)"
           stroke-width="1"
-          opacity="0.45"
+          opacity="0.5"
         />
 
-        <!-- Major ticks + labels -->
+        <!-- Major ticks + labels (colored by sign) -->
         <g v-for="tick in majorTicks" :key="tick.v">
           <line
             :x1="tick.x"
             :y1="LY - (tick.isZero ? 14 : 10)"
             :x2="tick.x"
             :y2="LY + (tick.isZero ? 14 : 10)"
-            stroke="#42b883"
+            :stroke="tickFill(tick.v)"
             :stroke-width="tick.isZero ? 3 : 2"
           />
           <text
@@ -191,6 +242,7 @@ function reset() {
             :y="LY + 27"
             text-anchor="middle"
             class="nl-tick-label"
+            :fill="tickFill(tick.v)"
           >
             {{ tick.v }}
           </text>
@@ -217,22 +269,54 @@ function reset() {
       Limit reached (−10 to 10)
     </div>
 
-    <!-- Operation buttons -->
-    <div class="nl-ops-grid">
-      <motion.button
-        v-for="(op, i) in ops"
-        :key="op.key"
-        class="nl-op-btn"
-        :class="op.type"
-        @click="applyOp(op.key)"
-        :initial="{ opacity: 0, scale: 0.9 }"
-        :animate="{ opacity: 1, scale: 1 }"
-        :transition="{ duration: 0.2, delay: 0.05 + i * 0.05 }"
-        :while-hover="{ scale: 1.05, y: -2 }"
-        :while-tap="{ scale: 0.95, y: 0 }"
-      >
-        {{ op.label }}
-      </motion.button>
+    <!-- ── Multiply group ───────────────────────────── -->
+    <div class="nl-ops-group multiply-group">
+      <div class="nl-ops-group-header">
+        <span class="header-icon">×</span> Multiply
+      </div>
+      <div class="nl-ops-row">
+        <motion.button
+          v-for="(op, i) in multiplyOps"
+          :key="op.key"
+          class="nl-op-btn multiply"
+          :class="{ 'btn-neg': op.numNeg }"
+          :aria-label="op.numNeg ? 'multiply by negative one' : 'multiply by one'"
+          @click="applyOp(op.key)"
+          :initial="{ opacity: 0, scale: 0.9 }"
+          :animate="{ opacity: 1, scale: 1 }"
+          :transition="{ duration: 0.2, delay: 0.05 + i * 0.06 }"
+          :while-hover="{ scale: 1.05, y: -2 }"
+          :while-tap="{ scale: 0.95, y: 0 }"
+        >
+          <span class="btn-sym">{{ op.sym }}</span>
+          <span class="btn-num" :class="{ neg: op.numNeg }">{{ op.num }}</span>
+        </motion.button>
+      </div>
+    </div>
+
+    <!-- ── Add group ─────────────────────────────────── -->
+    <div class="nl-ops-group add-group">
+      <div class="nl-ops-group-header">
+        <span class="header-icon">+</span> Add
+      </div>
+      <div class="nl-ops-row">
+        <motion.button
+          v-for="(op, i) in addOps"
+          :key="op.key"
+          class="nl-op-btn add"
+          :class="{ 'btn-neg': op.numNeg }"
+          :aria-label="op.numNeg ? 'add negative one' : 'add one'"
+          @click="applyOp(op.key)"
+          :initial="{ opacity: 0, scale: 0.9 }"
+          :animate="{ opacity: 1, scale: 1 }"
+          :transition="{ duration: 0.2, delay: 0.17 + i * 0.06 }"
+          :while-hover="{ scale: 1.05, y: -2 }"
+          :while-tap="{ scale: 0.95, y: 0 }"
+        >
+          <span class="btn-sym">{{ op.sym }}</span>
+          <span class="btn-num" :class="{ neg: op.numNeg }">{{ op.num }}</span>
+        </motion.button>
+      </div>
     </div>
 
     <!-- Reset -->
@@ -260,7 +344,7 @@ function reset() {
 /* ── Value display ─────────────────────────────────── */
 .nl-value-section {
   text-align: center;
-  padding: 1.25rem 0 0.75rem;
+  padding: 1.25rem 0 0.5rem;
 }
 
 .nl-value-label {
@@ -280,7 +364,7 @@ function reset() {
   border-radius: 50%;
   background: #42b883;
   color: #fff;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
   box-shadow: 0 4px 16px rgba(66, 184, 131, 0.45);
   transition: background 0.35s ease, box-shadow 0.35s ease;
 }
@@ -302,26 +386,62 @@ function reset() {
   display: inline-block;
 }
 
+/* Sign badge below the circle */
+.nl-sign-badge {
+  display: inline-block;
+  padding: 0.2rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #42b88322;
+  color: #42b883;
+  margin-bottom: 0.6rem;
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+.nl-sign-badge.is-negative {
+  background: #e74c3c22;
+  color: #e74c3c;
+}
+
+.nl-sign-badge.is-zero {
+  background: #7f8c8d22;
+  color: #7f8c8d;
+}
+
 .nl-equation-wrap {
-  min-height: 1.6rem;
+  min-height: 1.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* Equation color by operation type */
 .nl-equation {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #42b883;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.2rem 0.75rem;
+  border-radius: 8px;
+}
+
+.nl-equation.multiply {
+  color: #7209b7;
+  background: #7209b715;
+}
+
+.nl-equation.add {
+  color: #2563eb;
+  background: #2563eb15;
 }
 
 /* ── Number line track ─────────────────────────────── */
 .nl-track-area {
   position: relative;
   width: 100%;
-  /* Maintain SVG aspect ratio: SH/SW = 90/400 = 22.5% */
-  padding-bottom: 22.5%;
-  margin: 1.25rem 0 0.5rem;
+  padding-bottom: 22.5%; /* 90/400 ratio */
+  margin: 1rem 0 0.25rem;
 }
 
 .nl-svg {
@@ -332,20 +452,27 @@ function reset() {
   height: 100%;
 }
 
+.nl-region-label {
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
 .nl-tick-label {
   font-size: 13px;
-  fill: #666;
   font-family: inherit;
 }
 
 /* ── Animated marker ───────────────────────────────── */
 .nl-marker {
   position: absolute;
-  top: 55.56%; /* LY / SH = 50/90 */
+  /* LY / SH × 100 — computed from MARKER_TOP_PCT constant */
+  top: v-bind("MARKER_TOP_PCT + '%'");
   width: 36px;
   height: 36px;
-  margin-left: -18px; /* center on the left position */
-  margin-top: -18px; /* center vertically on line */
+  margin-left: -18px;
+  margin-top: -18px;
   border-radius: 50%;
   background: #42b883;
   color: #fff;
@@ -372,22 +499,11 @@ function reset() {
 
 /* Limit shake */
 @keyframes nl-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20% {
-    transform: translateX(-6px);
-  }
-  40% {
-    transform: translateX(6px);
-  }
-  60% {
-    transform: translateX(-4px);
-  }
-  80% {
-    transform: translateX(4px);
-  }
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
 }
 
 .nl-shake {
@@ -403,52 +519,118 @@ function reset() {
   min-height: 1.25rem;
   opacity: 0;
   transition: opacity 0.2s ease;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .nl-limit-msg.visible {
   opacity: 1;
 }
 
-/* ── Operation buttons ─────────────────────────────── */
-.nl-ops-grid {
+/* ── Operation groups ──────────────────────────────── */
+.nl-ops-group {
+  border-radius: 16px;
+  padding: 0.75rem 0.75rem 0.85rem;
+  margin-bottom: 0.75rem;
+  border: 2px solid transparent;
+}
+
+.multiply-group {
+  background: #7209b70a;
+  border-color: #7209b730;
+}
+
+.add-group {
+  background: #2563eb0a;
+  border-color: #2563eb30;
+}
+
+.nl-ops-group-header {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.multiply-group .nl-ops-group-header {
+  color: #7209b7;
+}
+
+.add-group .nl-ops-group-header {
+  color: #2563eb;
+}
+
+.header-icon {
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* ── Operation button rows ─────────────────────────── */
+.nl-ops-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin: 0.75rem 0 1.25rem;
+  gap: 0.65rem;
 }
 
 .nl-op-btn {
-  padding: 1.1rem 0.5rem;
+  padding: 0.85rem 0.5rem 0.75rem;
   border: none;
   border-radius: 14px;
-  font-size: 1.3rem;
-  font-weight: 700;
   cursor: pointer;
   color: #fff;
-  letter-spacing: 0.02em;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-  transition: box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
 }
 
+/* Operator symbol (× or +) */
+.btn-sym {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+/* Number part of button */
+.btn-num {
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Negative number in button = bright amber, stands out on both purple and blue */
+.btn-num.neg {
+  color: #ffd166;
+}
+
+/* Multiply buttons: purple */
 .nl-op-btn.multiply {
-  background: #42b883;
-  box-shadow: 0 3px 10px rgba(66, 184, 131, 0.35);
+  background: #7209b7;
+  box-shadow: 0 3px 12px rgba(114, 9, 183, 0.35);
 }
 
-.nl-op-btn.add {
-  background: #3498db;
-  box-shadow: 0 3px 10px rgba(52, 152, 219, 0.35);
+/* Add positive: deep blue */
+.nl-op-btn.add:not(.btn-neg) {
+  background: #2563eb;
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.35);
 }
 
-.nl-op-btn.subtract {
-  background: #e74c3c;
-  box-shadow: 0 3px 10px rgba(231, 76, 60, 0.35);
+/* Add negative (+ (−1)): coral-red to reinforce "negative" */
+.nl-op-btn.add.btn-neg {
+  background: #c0392b;
+  box-shadow: 0 3px 12px rgba(192, 57, 43, 0.35);
 }
 
 /* ── Reset button ──────────────────────────────────── */
 .nl-reset-wrap {
   text-align: center;
+  margin-top: 0.5rem;
 }
 
 .nl-reset-btn {
@@ -474,12 +656,32 @@ function reset() {
     color: #999;
   }
 
-  .nl-tick-label {
-    fill: #aaa;
+  .nl-equation.multiply {
+    color: #c77dff;
+    background: #7209b720;
   }
 
-  .nl-equation {
-    color: #5dcfa2;
+  .nl-equation.add {
+    color: #93c5fd;
+    background: #2563eb20;
+  }
+
+  .multiply-group {
+    background: #7209b712;
+    border-color: #7209b740;
+  }
+
+  .add-group {
+    background: #2563eb12;
+    border-color: #2563eb40;
+  }
+
+  .multiply-group .nl-ops-group-header {
+    color: #c77dff;
+  }
+
+  .add-group .nl-ops-group-header {
+    color: #93c5fd;
   }
 
   .nl-reset-btn {
@@ -490,10 +692,6 @@ function reset() {
   .nl-reset-btn:hover {
     background: #5dcfa2;
     color: #1a1a1a;
-  }
-
-  .nl-op-btn {
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
   }
 }
 
@@ -508,16 +706,30 @@ function reset() {
     height: 70px;
   }
 
+  .btn-sym {
+    font-size: 1.3rem;
+  }
+
+  .btn-num {
+    font-size: 1.2rem;
+  }
+
   .nl-op-btn {
-    font-size: 1.15rem;
-    padding: 1rem 0.5rem;
+    padding: 0.75rem 0.5rem 0.65rem;
   }
 }
 
 @media (min-width: 640px) {
+  .btn-sym {
+    font-size: 1.7rem;
+  }
+
+  .btn-num {
+    font-size: 1.6rem;
+  }
+
   .nl-op-btn {
-    font-size: 1.4rem;
-    padding: 1.2rem 0.5rem;
+    padding: 1rem 0.5rem 0.9rem;
   }
 }
 </style>
