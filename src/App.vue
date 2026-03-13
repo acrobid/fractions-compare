@@ -5,6 +5,7 @@ import FractionCircle from "./components/FractionCircle.vue";
 import TabNavigation from "./components/TabNavigation.vue";
 import DecimalFractionTab from "./components/DecimalFractionTab.vue";
 import LongDivisionPage from "./components/LongDivisionPage.vue";
+import NumberLinePage from "./components/NumberLinePage.vue";
 
 const activeTab = ref("compare");
 
@@ -89,6 +90,10 @@ const areEqual = computed(() => {
 
     <div v-if="activeTab === 'division'" class="tab-content">
       <LongDivisionPage />
+    </div>
+
+    <div v-if="activeTab === 'numberline'" class="tab-content">
+      <NumberLinePage />
     </div>
   </div>
 </template>
