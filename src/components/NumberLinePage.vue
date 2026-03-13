@@ -32,6 +32,12 @@ const atLimit = ref(false);
 const markerLeftPct = computed(() => (vx(currentValue.value) / SW) * 100);
 const initLeftPct = (vx(INITIAL) / SW) * 100;
 
+// Animation state: re-mount marker on each op to retrigger the arc
+const prevLeftPct = ref(initLeftPct);
+const animKey = ref(0);
+// Arc height in pixels (translateY) — negative = upward
+const ARC_Y = -55;
+
 // Sign label and class for the value circle
 const signLabel = computed(() => {
   if (currentValue.value > 0) return "positive";
@@ -54,14 +60,14 @@ function tickFill(v: number): string {
   return "#7f8c8d";
 }
 
-// Operation groups
+// Operation groups — negative on left, positive on right
 const multiplyOps = [
-  { key: "m1" as const, sym: "×", num: "1", numNeg: false },
-  { key: "mn1" as const, sym: "×", num: "−1", numNeg: true },
+  { key: "mn1" as const, sym: "×", num: "−1", numNeg: true },   // left = negative
+  { key: "m1" as const, sym: "×", num: "1", numNeg: false },    // right = positive
 ];
 const addOps = [
-  { key: "p1" as const, sym: "+", num: "1", numNeg: false },
-  { key: "pn1" as const, sym: "+", num: "(−1)", numNeg: true },
+  { key: "pn1" as const, sym: "+", num: "(−1)", numNeg: true },  // left = negative
+  { key: "p1" as const, sym: "+", num: "1", numNeg: false },     // right = positive
 ];
 
 type OpKey = "m1" | "mn1" | "p1" | "pn1";
@@ -74,6 +80,8 @@ function formatNum(n: number): string {
 
 function applyOp(key: OpKey) {
   const prev = currentValue.value;
+  // Capture position before update so the new marker element can start there
+  prevLeftPct.value = (vx(prev) / SW) * 100;
   let next: number;
   let equation: string;
   let opType: "multiply" | "add";
@@ -108,12 +116,15 @@ function applyOp(key: OpKey) {
   }
   currentValue.value = clamped;
   lastOp.value = { equation, opType };
+  animKey.value++;
 }
 
 function reset() {
+  prevLeftPct.value = (vx(currentValue.value) / SW) * 100;
   currentValue.value = INITIAL;
   lastOp.value = null;
   atLimit.value = false;
+  animKey.value++;
 }
 </script>
 
@@ -249,16 +260,23 @@ function reset() {
         </g>
       </svg>
 
-      <!-- Animated marker -->
+      <!-- Animated marker: re-mounts on each op to retrigger the arc -->
       <motion.div
+        :key="animKey"
         class="nl-marker"
         :class="{
           'is-negative': currentValue < 0,
           'is-zero': currentValue === 0,
         }"
-        :initial="{ left: initLeftPct + '%' }"
-        :animate="{ left: markerLeftPct + '%' }"
-        :transition="{ type: 'spring', stiffness: 90, damping: 13 }"
+        :initial="{ left: prevLeftPct + '%', y: 0 }"
+        :animate="{
+          left: markerLeftPct + '%',
+          y: animKey > 0 ? [0, ARC_Y, 0] : 0,
+        }"
+        :transition="{
+          left: { type: 'tween', duration: 0.5, ease: 'easeInOut' },
+          y: { duration: 0.5, times: [0, 0.4, 1], ease: 'easeInOut' },
+        }"
       >
         {{ currentValue }}
       </motion.div>
@@ -441,7 +459,9 @@ function reset() {
   position: relative;
   width: 100%;
   padding-bottom: 22.5%; /* 90/400 ratio */
-  margin: 1rem 0 0.25rem;
+  /* extra top margin gives the arc room to breathe above the line */
+  margin: 2.5rem 0 0.25rem;
+  overflow: visible;
 }
 
 .nl-svg {
